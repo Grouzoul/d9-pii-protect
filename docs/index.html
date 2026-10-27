@@ -218,7 +218,7 @@
             conteste un prélèvement sur son IBAN FR7630006000011234567890189." }</pre>
       <h3>À l'écriture — rehydratation</h3>
       <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
-      <div class="note"><span class="lbl">Round-trip prouvé</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption. « Rehydrate » = terme générique de l'opération inverse ; l'extension n'embarque aucun SDK tiers.</div>
+      <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
     </section>
 
     <section id="demarrage">
@@ -259,13 +259,13 @@
     <section id="securite">
       <h2>Modèle de sécurité</h2>
       <ul>
-        <li><strong>AES-256-GCM, nonce aléatoire par valeur.</strong> Impossible à reconstituer sans la clé — y compris pour une PII à faible entropie (NIR, téléphone), que les approches par <em>hash non salé</em> laissent brute-forcer.</li>
+        <li><strong>AES-256-GCM, nonce aléatoire par valeur.</strong> Impossible à reconstituer sans la clé.</li>
         <li><strong>Zéro fuite d'égalité.</strong> La même valeur donne deux chiffrés différents : un agent ne peut même pas déduire que deux fiches partagent le même NIR.</li>
         <li><strong>Réversibilité gouvernée.</strong> Le chiffré est déchiffrable par le porteur de clé — pas par l'agent, qui ne voit jamais la clé. Pseudonymisation contrôlée (ré-identification sous RBAC + audit), pas du masquage à sens unique.</li>
         <li><strong>Fail-closed.</strong> Si le moteur est indisponible, le champ est masqué (<code>[protégé — indisponible]</code>), jamais laissé en clair. Une panne ne provoque pas de fuite.</li>
         <li><strong>Authentifié (GCM).</strong> Toute altération d'un chiffré est détectée.</li>
       </ul>
-      <div class="note warn"><span class="lbl">Où va le risque</span>La sécurité repose désormais sur la <strong>custody de la clé</strong>, pas sur la difficulté de cassage. En production : clé en KMS/HSM, rotation, journal des ré-identifications. (POC : clé de démo en dur.)</div>
+      <div class="note warn"><span class="lbl">Custody de clé</span>KMS/HSM, rotation, journal d'audit des ré-identifications.</div>
     </section>
 
     <section id="moteur">
@@ -278,19 +278,19 @@
         <tr><td>hoop · Presidio (EN)</td><td class="num">0,87</td><td class="bad">≈ 0 réel</td></tr>
         <tr><td><strong>Cette extension (FR-first)</strong></td><td class="num ok">1,00</td><td class="ok">8 / 8</td></tr>
       </table>
-      <p class="dim" style="font-size:14px">Détection servie par Microsoft Presidio + modèles FR open source ; le moteur est interchangeable (on choisit le NER).</p>
+      <p class="dim" style="font-size:14px">Détection : Microsoft Presidio + modèles FR open source.</p>
     </section>
 
     <section id="roadmap">
       <h2>Roadmap</h2>
       <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
       <ul>
-        <li><strong>Secure-by-default (inversion de la logique)</strong> — chiffré <em>par défaut</em>, clair uniquement pour les rôles humains explicitement autorisés (allowlist). Un rôle inconnu est protégé (fail-safe), au lieu de l'actuel « clair sauf rôles agents ». Posture moindre-privilège. <span class="dim">(~2 lignes)</span></li>
+        <li><strong>Secure-by-default</strong> — chiffré par défaut, clair uniquement pour une allowlist de rôles humains (fail-safe).</li>
         <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
         <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
         <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
-        <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand c'est requis (protégé par la clé, contrairement au hash).</li>
+        <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand requis.</li>
       </ul>
     </section>
   </main>
