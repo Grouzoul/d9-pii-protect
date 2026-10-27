@@ -1,12 +1,12 @@
 {
-  "name": "directus-extension-ecluse",
+  "name": "directus-extension-pii-protect",
   "description": "Anonymisation gouvernée des PII pour agents IA : détection FR + chiffrement réversible, par rôle.",
   "icon": "lock",
   "version": "0.1.0",
   "author": "La Webcapsule <support@webcapsule.io>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Grouzoul/ecluse.git"
+    "url": "https://github.com/Grouzoul/d9-pii-protect.git"
   },
   "license": "MIT",
   "keywords": [

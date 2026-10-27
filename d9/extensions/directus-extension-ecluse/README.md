@@ -1,4 +1,4 @@
-# directus-extension-ecluse
+# directus-extension-pii-protect (d9 PII Protect)
 
 Hook d9 / Directus d'**anonymisation gouvernée des PII pour les agents IA**.
 
