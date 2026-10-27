@@ -1,4 +1,6 @@
-# Écluse — POC « brique manquante » (anonymisation gouvernée des PII pour agents IA, dans d9)
+# d9 PII Protect — anonymisation gouvernée des PII pour agents IA (dans d9)
+
+> POC « brique manquante ». *Écluse* = nom de code interne du moteur d'anonymisation.
 
 **L'idée :** d9 gère le RBAC (qui accède à quoi). Écluse gère le **contenu PII** des champs
 texte libre — ce que le RBAC au champ ne peut pas voir (un NIR tapé dans un `note`).
