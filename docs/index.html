@@ -1,0 +1,329 @@
+<title>Écluse · Plugin d9 — Documentation</title>
+<style>
+  :root {
+    --bg: #F2F0EA; --surface: #FBFAF6; --surface2: #ECE9E0; --fg: #1B2127;
+    --dim: #5C6168; --line: #D8D3C6; --brass: #9A6C1C; --brass2: #B07D22;
+    --teal: #2F6E68; --clay: #A84B38; --code-bg: #14190F; --code-fg: #E8E4D6;
+    --font-sans: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0D1217; --surface: #141b22; --surface2: #10161c; --fg: #E4E7E3;
+      --dim: #8A949C; --line: #263038; --brass: #D4A24C; --brass2: #E3B662;
+      --teal: #4FA59B; --clay: #CC6B54; --code-bg: #0A0E12; --code-fg: #D7E0DC;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #F2F0EA; --surface: #FBFAF6; --surface2: #ECE9E0; --fg: #1B2127;
+    --dim: #5C6168; --line: #D8D3C6; --brass: #9A6C1C; --brass2: #B07D22;
+    --teal: #2F6E68; --clay: #A84B38; --code-bg: #14190F; --code-fg: #E8E4D6;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1217; --surface: #141b22; --surface2: #10161c; --fg: #E4E7E3;
+    --dim: #8A949C; --line: #263038; --brass: #D4A24C; --brass2: #E3B662;
+    --teal: #4FA59B; --clay: #CC6B54; --code-bg: #0A0E12; --code-fg: #D7E0DC;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--font-sans); font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  code, pre, .mono { font-family: var(--font-mono); }
+
+  /* ---- top bar ---- */
+  header.top {
+    position: sticky; top: 0; z-index: 30; display: flex; align-items: center;
+    justify-content: space-between; gap: 16px; padding: 13px 22px;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: saturate(1.2) blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .wm { font-weight: 680; font-size: 19px; letter-spacing: -0.01em; }
+  .wm::before {
+    content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 8px;
+    border: 2px solid var(--brass); border-radius: 2px; vertical-align: middle;
+    background: linear-gradient(135deg, transparent 0 48%, var(--teal) 48% 52%, transparent 52%);
+  }
+  .wm small { font-weight: 500; color: var(--dim); font-size: 13px; }
+  .ver { font-family: var(--font-mono); font-size: 11px; color: var(--brass);
+    border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent); padding: 2px 8px; border-radius: 20px; }
+
+  /* ---- layout ---- */
+  .wrap { display: grid; grid-template-columns: 232px minmax(0,1fr); gap: 0;
+    max-width: 1120px; margin: 0 auto; }
+  nav.side {
+    position: sticky; top: 53px; align-self: start; height: calc(100vh - 53px);
+    overflow-y: auto; padding: 26px 16px 40px 22px; border-right: 1px solid var(--line);
+  }
+  nav.side .grp { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--dim); margin: 18px 0 8px; }
+  nav.side a { display: block; text-decoration: none; color: var(--dim); font-size: 14px;
+    padding: 5px 10px; border-radius: 6px; border-left: 2px solid transparent; }
+  nav.side a:hover { color: var(--fg); background: var(--surface2); }
+  nav.side a.active { color: var(--brass); border-left-color: var(--brass); font-weight: 600; }
+
+  main { padding: 34px 40px 100px; min-width: 0; }
+  section { scroll-margin-top: 70px; margin-bottom: 52px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--brass); margin: 0 0 10px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.07; letter-spacing: -0.025em;
+    margin: 6px 0 0; font-weight: 700; text-wrap: balance; }
+  h2 { font-size: 25px; letter-spacing: -0.015em; margin: 0 0 14px; font-weight: 680;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  h3 { font-size: 17px; margin: 24px 0 8px; font-weight: 650; }
+  p { margin: 12px 0; max-width: 70ch; }
+  .lede { font-size: 19px; color: var(--fg); max-width: 66ch; }
+  .dim { color: var(--dim); }
+  strong { font-weight: 650; }
+  .accent { color: var(--brass); }
+  ul { max-width: 70ch; padding-left: 20px; }
+  li { margin: 6px 0; }
+
+  .hero { margin-bottom: 46px; }
+  .taglines { font-size: 19px; color: var(--dim); max-width: 64ch; margin-top: 16px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  .btn { font-family: var(--font-mono); font-size: 13px; text-decoration: none; font-weight: 600;
+    padding: 10px 16px; border-radius: 6px; }
+  .btn.p { background: var(--brass); color: var(--bg); }
+  .btn.g { border: 1px solid var(--line); color: var(--fg); }
+  .btn.g:hover { border-color: var(--brass); color: var(--brass); }
+
+  pre { background: var(--code-bg); color: var(--code-fg); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+    border: 1px solid color-mix(in srgb, var(--code-fg) 12%, transparent); }
+  pre .c { color: #8aa; } /* comment */
+  pre .k { color: var(--brass2); } /* keyword/key */
+  pre .s { color: #9cc98f; } /* string */
+  :not(pre) > code { background: var(--surface2); padding: 1.5px 6px; border-radius: 5px;
+    font-size: 0.88em; border: 1px solid var(--line); }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px 22px; margin: 16px 0; }
+  .note { border-left: 3px solid var(--teal); background: var(--surface);
+    border-radius: 0 10px 10px 0; padding: 12px 18px; margin: 16px 0; font-size: 14.5px; }
+  .warn { border-left: 3px solid var(--clay); }
+  .note .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--teal); display: block; margin-bottom: 3px; }
+  .warn .lbl { color: var(--clay); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+  td code { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  .ok { color: var(--teal); font-weight: 650; } .bad { color: var(--clay); font-weight: 650; }
+
+  /* flow diagram */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin: 18px 0; }
+  .node { flex: 1 1 130px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px; min-width: 120px; }
+  .node .t { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--dim); }
+  .node .b { font-weight: 640; font-size: 14px; margin-top: 3px; }
+  .node.hl { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 8%, var(--surface)); }
+  .arrow { display: flex; align-items: center; color: var(--brass); font-size: 18px; }
+  @media (max-width: 720px) { .arrow { transform: rotate(90deg); } }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 40px; margin: 18px 0; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: -2px;
+    width: 26px; height: 26px; border-radius: 50%; background: var(--brass); color: var(--bg);
+    font-family: var(--font-mono); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 40px 60px; max-width: 1120px; margin: 0 auto;
+    color: var(--dim); font-family: var(--font-mono); font-size: 12px; }
+  footer a { color: var(--brass); }
+
+  .burger { display: none; background: none; border: 1px solid var(--line); color: var(--fg);
+    border-radius: 7px; padding: 6px 10px; font-size: 16px; cursor: pointer; }
+  @media (max-width: 860px) {
+    .wrap { grid-template-columns: 1fr; }
+    nav.side { position: fixed; top: 52px; left: 0; width: 250px; height: calc(100vh - 52px);
+      background: var(--bg); z-index: 25; transform: translateX(-105%); transition: transform .2s ease; }
+    nav.side.open { transform: translateX(0); }
+    .burger { display: inline-block; }
+    main { padding: 26px 22px 80px; }
+  }
+  :focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; border-radius: 4px; }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <button class="burger" aria-label="Menu" onclick="document.querySelector('nav.side').classList.toggle('open')">☰</button>
+    <span class="wm">Écluse <small>· plugin d9</small></span>
+  </div>
+  <span class="ver">v0.1 · POC</span>
+</header>
+
+<div class="wrap">
+  <nav class="side" id="nav">
+    <div class="grp">Introduction</div>
+    <a href="#pitch">Pitch</a>
+    <a href="#fonctionnement">Comment ça marche</a>
+    <div class="grp">Utilisation</div>
+    <a href="#demarrage">Démarrage rapide</a>
+    <a href="#configuration">Configuration</a>
+    <div class="grp">Sous le capot</div>
+    <a href="#securite">Modèle de sécurité</a>
+    <a href="#moteur">Moteur de détection FR</a>
+    <div class="grp">Suite</div>
+    <a href="#roadmap">Roadmap</a>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <p class="eyebrow">Extension Directus / d9 · anonymisation gouvernée</p>
+      <h1>Vos agents IA lisent vos données.<br>Jamais vos données personnelles.</h1>
+      <p class="taglines">Écluse est un plugin d9 qui détecte les PII françaises dans vos champs texte libre et les <strong>chiffre à la volée, de façon réversible</strong>, pour tout agent IA — sans toucher à ce que voient vos utilisateurs humains.</p>
+      <div class="cta">
+        <a class="btn p" href="#demarrage">Démarrage rapide</a>
+        <a class="btn g" href="#fonctionnement">Comment ça marche</a>
+      </div>
+    </div>
+
+    <section id="pitch">
+      <h2>Pitch</h2>
+      <p class="lede">d9 sait <em>qui</em> a le droit d'accéder à <em>quoi</em>. Il ne sait pas qu'un numéro de sécurité sociale traîne dans un champ commentaire.</p>
+      <p>Le RBAC de d9 protège des <strong>champs entiers</strong> (par rôle, par ligne). Mais une PII cachée dans un champ texte libre autorisé — un NIR dans une <code>note</code>, un nom dans un message de ticket — passe <strong>en clair</strong> dans le contexte de l'agent. Une fois dans le contexte, elle part au modèle : egress, rétention, hors de votre contrôle.</p>
+      <p><strong class="accent">Écluse ferme ce trou.</strong> Pour un utilisateur de rôle « agent », le plugin intercepte la lecture, détecte les PII dans le contenu, et les remplace par un <strong>chiffré réversible</strong>. L'agent raisonne sur la donnée, agit, réécrit — sans jamais voir la moindre information personnelle. Un humain autorisé, porteur de la clé, ré-identifie sous audit.</p>
+      <div class="flow" aria-hidden="true">
+        <div class="node"><div class="t">d9</div><div class="b">RBAC — qui accède à quoi</div></div>
+        <div class="arrow">+</div>
+        <div class="node hl"><div class="t">Écluse</div><div class="b">Contenu PII des champs libres</div></div>
+        <div class="arrow">=</div>
+        <div class="node"><div class="t">Résultat</div><div class="b">Base « agent-ready » gouvernée</div></div>
+      </div>
+      <div class="note"><span class="lbl">Positionnement</span>Deux briques complémentaires : <strong>d9</strong> expose et gouverne l'accès (API, rôles, tokens) ; <strong>Écluse</strong> anonymise le contenu, quelle que soit la source. FR-first, déployé dans votre environnement.</div>
+    </section>
+
+    <section id="fonctionnement">
+      <h2>Comment ça marche</h2>
+      <p>Écluse est un hook Directus (non-sandboxé) branché sur le cycle de vie des items. Il appelle un <strong>moteur d'anonymisation</strong> local qui détecte les PII (modèle FR) et les chiffre in-place.</p>
+      <div class="flow" aria-hidden="true">
+        <div class="node"><div class="t">Agent IA</div><div class="b">GET /items/tickets</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="t">d9</div><div class="b">RBAC + hook items.read</div></div>
+        <div class="arrow">→</div>
+        <div class="node hl"><div class="t">Engine Écluse</div><div class="b">détecte + chiffre</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="t">Moteur FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
+      </div>
+      <h3>À la lecture — anonymisation</h3>
+      <p>Si le demandeur a un rôle agent, chaque champ texte libre configuré traverse l'engine. Les PII deviennent des marqueurs auto-porteurs <code>[[ECLUSE:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
+      <pre><span class="c">// réponse vue par un agent</span>
+{ "note": "Le client [[ECLUSE:PERSON:9MUXB2me…]] (NIR [[ECLUSE:FR_NIR:C1OIENV…]])
+            conteste un prélèvement sur son IBAN [[ECLUSE:IBAN_CODE:mpoZ9GG…]]." }
+
+<span class="c">// même enregistrement, vu par un humain (rôle admin)</span>
+{ "note": "Le client Jean Dupont (NIR 1 85 05 78 006 084 36)
+            conteste un prélèvement sur son IBAN FR7630006000011234567890189." }</pre>
+      <h3>À l'écriture — rehydratation</h3>
+      <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
+      <div class="note"><span class="lbl">Round-trip prouvé</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption. « Rehydrate » = terme générique de l'opération inverse ; Écluse n'embarque aucun SDK tiers.</div>
+    </section>
+
+    <section id="demarrage">
+      <h2>Démarrage rapide</h2>
+      <ol class="steps">
+        <li><strong>Posez l'extension</strong> dans le dossier <code>extensions/</code> de votre d9 (hook non-sandboxé — accès à l'<code>accountability</code>).
+          <pre>extensions/
+└─ directus-extension-ecluse/
+   ├─ package.json   <span class="c"># "directus:extension": { type:hook, path+source }</span>
+   └─ index.js</pre></li>
+        <li><strong>Lancez le moteur</strong> d'anonymisation (détection FR + chiffrement), joignable par d9.
+          <pre><span class="k">ECLUSE_ANALYZER_URL</span>=http://presidio-fr:5005/analyze \
+<span class="k">ECLUSE_KEY</span>=&lt;clé AES 32o&gt;  python ecluse_engine.py   <span class="c"># :8077</span></pre></li>
+        <li><strong>Déclarez vos rôles agents et champs</strong> dans <code>ecluse.config.json</code> (lu à chaud).</li>
+        <li><strong>C'est tout.</strong> Un agent lit l'API d9 habituelle : les PII des champs ciblés sont chiffrées. Un humain voit le clair.
+          <pre>curl /items/tickets -H "Authorization: Bearer <span class="c">$TOKEN_AGENT</span>"
+<span class="c"># → note : "… [[ECLUSE:FR_NIR:…]] …"</span></pre></li>
+      </ol>
+      <div class="note"><span class="lbl">Déployé chez vous</span>d9, Écluse et le moteur FR tournent dans votre environnement. Aucune PII en clair ne sort vers un tiers.</div>
+    </section>
+
+    <section id="configuration">
+      <h2>Configuration</h2>
+      <p>Un seul fichier, relu à chaud (pas de redémarrage) : <code>extensions/ecluse.config.json</code>.</p>
+      <pre>{
+  <span class="k">"engine"</span>: <span class="s">"http://host.docker.internal:8077"</span>,
+  <span class="k">"agentRoleIds"</span>: [<span class="s">"afd7a516-01a7-4ac0-9046-e1953ce811d8"</span>],
+  <span class="k">"fields"</span>: { <span class="s">"tickets"</span>: [<span class="s">"note"</span>] }
+}</pre>
+      <table>
+        <tr><th>Clé</th><th>Rôle</th></tr>
+        <tr><td><code>engine</code></td><td>URL du moteur d'anonymisation (dans votre réseau).</td></tr>
+        <tr><td><code>agentRoleIds</code></td><td>Rôles d9 traités comme « agents » → anonymisation activée. Les autres rôles voient le clair.</td></tr>
+        <tr><td><code>fields</code></td><td>Collections → champs texte libre à passer dans le moteur.</td></tr>
+      </table>
+    </section>
+
+    <section id="securite">
+      <h2>Modèle de sécurité</h2>
+      <ul>
+        <li><strong>AES-256-GCM, nonce aléatoire par valeur.</strong> Impossible à reconstituer sans la clé — y compris pour une PII à faible entropie (NIR, téléphone), que les approches par <em>hash non salé</em> laissent brute-forcer.</li>
+        <li><strong>Zéro fuite d'égalité.</strong> La même valeur donne deux chiffrés différents : un agent ne peut même pas déduire que deux fiches partagent le même NIR.</li>
+        <li><strong>Réversibilité gouvernée.</strong> Le chiffré est déchiffrable par le porteur de clé — pas par l'agent, qui ne voit jamais la clé. C'est de la pseudonymisation contrôlée (ré-identification sous RBAC + audit), pas du masquage à sens unique.</li>
+        <li><strong>Fail-closed.</strong> Si le moteur est indisponible, le champ est masqué (<code>[protégé — Écluse indisponible]</code>), jamais laissé en clair. Une panne ne provoque pas de fuite.</li>
+        <li><strong>Authentifié (GCM).</strong> Toute altération d'un chiffré est détectée.</li>
+      </ul>
+      <div class="note warn"><span class="lbl">Où va le risque</span>La sécurité repose désormais sur la <strong>custody de la clé</strong>, pas sur la difficulté de cassage. En production : clé en KMS/HSM, rotation, accès RBAC + journal des ré-identifications. (POC : clé de démo en dur.)</div>
+    </section>
+
+    <section id="moteur">
+      <h2>Moteur de détection FR</h2>
+      <p>Là où les outils du marché (hoop, Presidio par défaut, vaults SaaS) sont <strong>anglophones</strong>, Écluse est FR-first : NER français (CamemBERT / Anonym-IA) pour les noms, lieux et le <code>NIR</code>, plus des recognizers structurés (IBAN, téléphone, email) et des customs <code>SIREN</code> / <code>SIRET</code> (Luhn) et dates textuelles françaises.</p>
+      <p>Rappel mesuré sur un corpus FR identique (46 PII), même règle de comptage :</p>
+      <table>
+        <tr><th>Moteur</th><th class="num">Rappel</th><th>IDs FR (NIR/SIREN/SIRET)</th></tr>
+        <tr><td>hoop · Alcatraz (défaut)</td><td class="num">0,35</td><td class="bad">0 / 8</td></tr>
+        <tr><td>hoop · Presidio (EN)</td><td class="num">0,87</td><td class="bad">≈ 0 réel</td></tr>
+        <tr><td><strong>Écluse (FR-first)</strong></td><td class="num ok">1,00</td><td class="ok">8 / 8</td></tr>
+      </table>
+      <p class="dim" style="font-size:14px">Détection servie par Microsoft Presidio + modèles FR open source ; le moteur est interchangeable (on choisit le NER).</p>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
+      <ul>
+        <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
+        <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
+        <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
+        <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
+        <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand c'est requis (protégé par la clé, contrairement au hash).</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<footer>
+  Écluse · plugin d9 — anonymisation gouvernée des PII pour agents IA · FR-first, déployé dans votre environnement.<br>
+  Repo (privé) : <a href="#">github.com/LaWebcapsule/directus-extension-ecluse</a> · support@webcapsule.io
+</footer>
+
+<script>
+  // surlignage de la section active + fermeture du menu mobile au clic
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.side a'));
+    var map = {};
+    links.forEach(function (a) {
+      map[a.getAttribute('href').slice(1)] = a;
+      a.addEventListener('click', function () { document.querySelector('nav.side').classList.remove('open'); });
+    });
+    var secs = Array.prototype.slice.call(document.querySelectorAll('main section'));
+    var obs = new IntersectionObserver(function (ents) {
+      ents.forEach(function (e) {
+        if (e.isIntersecting) {
+          links.forEach(function (l) { l.classList.remove('active'); });
+          if (map[e.target.id]) map[e.target.id].classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -75% 0px' });
+    secs.forEach(function (s) { obs.observe(s); });
+  })();
+</script>
