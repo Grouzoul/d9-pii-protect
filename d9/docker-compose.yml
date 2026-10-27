@@ -1,0 +1,24 @@
+services:
+  d9:
+    image: d9-main:latest
+    container_name: ecluse-d9
+    ports:
+      - "8060:8055"
+    environment:
+      KEY: ecluse-key
+      SECRET: ecluse-secret
+      ADMIN_EMAIL: admin@ecluse.io
+      ADMIN_PASSWORD: ecluse-admin
+      DB_CLIENT: sqlite3
+      DB_FILENAME: /directus/database/database.sqlite
+      EXTENSIONS_PATH: /directus/extensions
+      PUBLIC_URL: http://localhost:8060
+      TELEMETRY: "false"
+      CACHE_ENABLED: "false"
+      CORS_ENABLED: "true"
+      EXTENSIONS_AUTO_RELOAD: "true"
+    volumes:
+      - ./extensions:/directus/extensions
+      - ./database:/directus/database
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

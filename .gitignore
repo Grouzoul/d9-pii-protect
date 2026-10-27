@@ -1,0 +1,6 @@
+venv/
+d9/database/
+engine/engine.log
+__pycache__/
+*.pyc
+.DS_Store

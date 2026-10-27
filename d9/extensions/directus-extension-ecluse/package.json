@@ -1,0 +1,12 @@
+{
+  "name": "directus-extension-ecluse",
+  "version": "1.0.0",
+  "type": "module",
+  "keywords": ["directus", "directus-extension", "directus-custom-hook"],
+  "directus:extension": {
+    "type": "hook",
+    "path": "index.js",
+    "source": "index.js",
+    "host": "^12.0.0 || ^11.0.0 || ^10.0.0"
+  }
+}
