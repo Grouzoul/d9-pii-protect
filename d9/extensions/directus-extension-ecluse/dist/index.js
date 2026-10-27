@@ -1,17 +1,14 @@
 /**
  * directus-extension-ecluse — hook (non-sandboxé)
+ * Sortie "buildée" (dist). Source : src/index.ts — `npm run build` pour régénérer.
  *
  * Pour un user de rôle "agent" :
- *   - items.read   -> anonymise (chiffre) les PII des champs texte libre via l'engine Écluse
+ *   - items.read          -> anonymise (chiffre) les PII des champs texte libre via l'engine Écluse
  *   - items.create/update -> rehydrate les marqueurs [[ECLUSE:...]] avant écriture en base
  *
  * Config lue à chaud dans /directus/extensions/ecluse.config.json :
  *   { "engine": "http://host.docker.internal:8077",
- *     "agentRoleIds": ["<uuid-role-agent>"],
- *     "fields": { "tickets": ["note"] } }
- *
- * d9 gère le RBAC (qui accède à quoi) ; Écluse gère le CONTENU PII des champs libres
- * que le RBAC champ/ligne ne peut pas voir. Les deux briques s'emboîtent.
+ *     "agentRoleIds": ["<uuid-role-agent>"], "fields": { "tickets": ["note"] } }
  */
 import { readFileSync } from 'node:fs';
 
