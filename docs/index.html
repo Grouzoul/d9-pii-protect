@@ -220,7 +220,7 @@
       <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
       <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
       <h3>Fichiers (documents texte)</h3>
-      <p>Un document <code>.txt</code> / <code>.docx</code> téléchargé par un agent (<code>/assets</code>) est tokenisé de la même façon, réversiblement ; un humain récupère l'original. <span class="dim">(Images &amp; PDF scannés : caviardage destructif — roadmap.)</span></p>
+      <p>Un document <code>.txt</code> / <code>.docx</code> téléchargé par un agent (<code>/assets</code>) est tokenisé réversiblement ; s'il le <strong>ré-uploade</strong> (nouvelle version), les marqueurs sont <strong>rehydratés avant stockage</strong>. L'agent peut donc <strong>lire ET mettre à jour</strong> un document sans jamais voir la PII ; un humain récupère toujours l'original. <span class="dim">(Images &amp; PDF scannés : caviardage destructif — roadmap.)</span></p>
     </section>
 
     <section id="demarrage">
@@ -286,6 +286,7 @@
       <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
       <ul>
         <li><strong>Secure-by-default</strong> — chiffré par défaut, clair uniquement pour une allowlist de rôles humains (fail-safe).</li>
+        <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée : un document ré-uploadé hors fenêtre n'est plus rehydratable (clé tournée) → réversibilité bornée dans le temps.</li>
         <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
         <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>

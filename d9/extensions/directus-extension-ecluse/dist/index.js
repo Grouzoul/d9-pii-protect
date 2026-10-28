@@ -8,6 +8,7 @@
  * Repli rôle : ecluse.config.json > agentRoleIds.
  */
 import { readFileSync } from 'node:fs';
+import { Readable } from 'node:stream';
 
 const CONFIG_PATH = '/directus/extensions/ecluse.config.json';
 let _cfg = null, _at = 0;
@@ -46,7 +47,13 @@ async function call(engine, path, text) {
 // documents texte traités de façon réversible via l'engine
 const TEXT_DOCS = ['txt', 'md', 'csv', 'json', 'docx'];
 
-export default ({ filter, init }, { logger, database }) => {
+async function bufferStream(stream) {
+  const chunks = [];
+  for await (const c of stream) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+  return Buffer.concat(chunks);
+}
+
+export default ({ filter, init, action }, { logger, database, services, getSchema }) => {
   // -------- LECTURE : anonymisation des champs texte pour les rôles agents --------
   filter('items.read', async (payload, meta, ctx) => {
     const c = cfg();
@@ -127,6 +134,38 @@ export default ({ filter, init }, { logger, database }) => {
         return next();
       }
     });
+  });
+
+  // -------- UPLOAD : rehydrate un document ré-uploadé par un agent (round-trip fichier) --------
+  action('files.upload', async (meta, ctx) => {
+    try {
+      const role = ctx && ctx.accountability && ctx.accountability.role;
+      if (!(await isAgentRole(database, role))) return; // upload humain/système -> inchangé (garde anti-récursion)
+      const key = (meta && (meta.key || (meta.payload && meta.payload.id))) || meta;
+      if (!key || typeof key !== 'string') return;
+      const schema = await getSchema();
+      const sys = { admin: true, role: null };
+      const files = new services.FilesService({ schema, accountability: sys });
+      const file = await files.readOne(key);
+      const name = (file && (file.filename_download || file.filename_disk)) || '';
+      const ext = name.toLowerCase().split('.').pop();
+      if (!TEXT_DOCS.includes(ext)) return;
+      const assets = new services.AssetsService({ schema, accountability: sys });
+      const asset = await assets.getAsset(key, {});
+      const buf = await bufferStream(asset.stream || asset);
+      const r = await fetch(cfg().engine + '/rehydrate-doc', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ filename: name, content_b64: buf.toString('base64') }),
+      });
+      if (!r.ok) throw new Error('engine HTTP ' + r.status);
+      const clear = Buffer.from((await r.json()).content_b64, 'base64');
+      if (clear.equals(buf)) return; // aucun marqueur -> rien à réécrire
+      await files.uploadOne(Readable.from(clear),
+        { type: file.type, filename_download: file.filename_download, storage: file.storage, title: file.title }, key);
+      logger.info('[pii-protect] document ré-uploadé par un agent -> rehydraté (' + name + ')');
+    } catch (e) {
+      logger.warn('[pii-protect] files.upload rehydrate: ' + e.message);
+    }
   });
 
   logger.info('[pii-protect] hook chargé');
