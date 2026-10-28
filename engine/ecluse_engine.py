@@ -17,15 +17,15 @@ import base64, json, os, re, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-ANALYZER_URL = os.environ.get("ECLUSE_ANALYZER_URL", "http://localhost:5005/analyze")
+ANALYZER_URL = os.environ.get("PII_ANALYZER_URL") or os.environ.get("ECLUSE_ANALYZER_URL", "http://localhost:5005/analyze")
 LANG         = os.environ.get("ECLUSE_LANG", "fr")
 THRESHOLD    = float(os.environ.get("ECLUSE_THRESHOLD", "0.4"))
 PORT         = int(os.environ.get("ECLUSE_PORT", "8077"))
 # Clé démo 32 octets (AES-256). EN PROD : custody gouvernée (KMS/HSM), rotation, accès RBAC+audit.
-KEY = (os.environ.get("ECLUSE_KEY", "ecluse-demo-key-0123456789abcdef")).encode()[:32].ljust(32, b"0")
+KEY = (os.environ.get("PII_PROTECT_KEY") or os.environ.get("ECLUSE_KEY") or "demo-key-change-me-0123456789abc").encode()[:32].ljust(32, b"0")
 _aes = AESGCM(KEY)
 
-MARKER_RE = re.compile(r"\[\[ECLUSE:([A-Z_]+):([A-Za-z0-9_\-]+={0,2})\]\]")
+MARKER_RE = re.compile(r"\[\[PII:([A-Z_]+):([A-Za-z0-9_\-]+={0,2})\]\]")
 
 # --- Recognizers FR customs (ce qu'Anonym-IA n'a pas : SIREN/SIRET + dates textuelles) ---
 _MOIS = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre"
@@ -98,7 +98,7 @@ def anonymize(text, language):
     out, entities = text, []
     for s, e, t in sorted(spans, key=lambda x: x[0], reverse=True):  # de droite à gauche
         token = _enc(text[s:e])
-        out = out[:s] + f"[[ECLUSE:{t}:{token}]]" + out[e:]
+        out = out[:s] + f"[[PII:{t}:{token}]]" + out[e:]
         entities.append(t)
     return out, list(reversed(entities))
 
