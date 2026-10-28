@@ -208,10 +208,10 @@
         <div class="node"><div class="t">Détection FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
       </div>
       <h3>À la lecture — anonymisation</h3>
-      <p>Si le demandeur a un rôle agent, chaque champ texte libre configuré traverse le moteur. Les PII deviennent des marqueurs auto-porteurs <code>[[ECLUSE:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
+      <p>Si le demandeur a un rôle agent, chaque champ texte libre configuré traverse le moteur. Les PII deviennent des marqueurs auto-porteurs <code>[[PII:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
       <pre><span class="c">// réponse vue par un agent</span>
-{ "note": "Le client [[ECLUSE:PERSON:9MUXB2me…]] (NIR [[ECLUSE:FR_NIR:C1OIENV…]])
-            conteste un prélèvement sur son IBAN [[ECLUSE:IBAN_CODE:mpoZ9GG…]]." }
+{ "note": "Le client [[PII:PERSON:9MUXB2me…]] (NIR [[PII:FR_NIR:C1OIENV…]])
+            conteste un prélèvement sur son IBAN [[PII:IBAN_CODE:mpoZ9GG…]]." }
 
 <span class="c">// même enregistrement, vu par un humain (rôle admin)</span>
 { "note": "Le client Jean Dupont (NIR 1 85 05 78 006 084 36)
@@ -230,12 +230,12 @@
    ├─ package.json   <span class="c"># "directus:extension": { type:hook, path+source }</span>
    └─ index.js</pre></li>
         <li><strong>Lancez le moteur</strong> d'anonymisation (détection FR + chiffrement), joignable par d9.
-          <pre><span class="k">ECLUSE_ANALYZER_URL</span>=http://presidio-fr:5005/analyze \
-<span class="k">ECLUSE_KEY</span>=&lt;clé AES 32o&gt;  python ecluse_engine.py   <span class="c"># :8077</span></pre></li>
-        <li><strong>Déclarez vos rôles agents et champs</strong> dans <code>ecluse.config.json</code> (lu à chaud).</li>
+          <pre><span class="k">PII_ANALYZER_URL</span>=http://presidio-fr:5005/analyze \
+<span class="k">PII_PROTECT_KEY</span>=&lt;clé AES 32o&gt;  python engine.py   <span class="c"># :8077</span></pre></li>
+        <li><strong>Marquez le rôle « Agent IA »</strong> (toggle <code>is_agent</code> sur le rôle) et déclarez les <strong>champs</strong> à protéger dans <code>ecluse.config.json</code> (lu à chaud).</li>
         <li><strong>C'est tout.</strong> Un agent lit l'API d9 habituelle : les PII des champs ciblés sont chiffrées. Un humain voit le clair.
           <pre>curl /items/tickets -H "Authorization: Bearer <span class="c">$TOKEN_AGENT</span>"
-<span class="c"># → note : "… [[ECLUSE:FR_NIR:…]] …"</span></pre></li>
+<span class="c"># → note : "… [[PII:FR_NIR:…]] …"</span></pre></li>
       </ol>
       <div class="note"><span class="lbl">Déployé chez vous</span>d9, l'extension et le moteur FR tournent dans votre environnement. Aucune PII en clair ne sort vers un tiers.</div>
     </section>
@@ -244,14 +244,12 @@
       <h2>Configuration</h2>
       <p>Un seul fichier, relu à chaud (pas de redémarrage) : <code>extensions/ecluse.config.json</code>.</p>
       <pre>{
-  <span class="k">"engine"</span>: <span class="s">"http://host.docker.internal:8077"</span>,
-  <span class="k">"agentRoleIds"</span>: [<span class="s">"afd7a516-01a7-4ac0-9046-e1953ce811d8"</span>],
-  <span class="k">"fields"</span>: { <span class="s">"tickets"</span>: [<span class="s">"note"</span>] }
+  <span class="k">"engine"</span>: <span class="s">"http://host.docker.internal:8077"</span>,  <span class="k">"fields"</span>: { <span class="s">"tickets"</span>: [<span class="s">"note"</span>] }
 }</pre>
       <table>
         <tr><th>Clé</th><th>Rôle</th></tr>
         <tr><td><code>engine</code></td><td>URL du moteur d'anonymisation (dans votre réseau).</td></tr>
-        <tr><td><code>agentRoleIds</code></td><td>Rôles d9 traités comme « agents » → anonymisation activée. Les autres rôles voient le clair.</td></tr>
+        <tr><td><strong>Rôle « Agent IA »</strong></td><td>Les rôles agents sont désignés par le toggle <code>Agent IA</code> (champ <code>is_agent</code>) sur la page du rôle — pas dans ce fichier. Les autres rôles voient le clair.</td></tr>
         <tr><td><code>fields</code></td><td>Collections → champs texte libre à passer dans le moteur.</td></tr>
       </table>
     </section>
@@ -290,6 +288,8 @@
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
         <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
         <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
+        <li><strong>Images &amp; documents</strong> — redaction OCR des pièces jointes (Presidio image-redactor / Tesseract) pour les rôles agents.</li>
+        <li><strong>Industrialisation release</strong> — tout en variables d'environnement (clé via KMS, sans valeur par défaut), config relative, secrets hors du compose.</li>
         <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand requis.</li>
       </ul>
     </section>

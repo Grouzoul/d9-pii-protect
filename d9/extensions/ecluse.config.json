@@ -1,8 +1,6 @@
 {
   "engine": "http://host.docker.internal:8077",
-  "agentRoleIds": [
-    "ce8a3746-0778-4f19-9619-74b170c581df"
-  ],
+  "agentRoleIds": [],
   "fields": {
     "tickets": [
       "note"
