@@ -207,3 +207,9 @@ setMode('agent');renderCompare();
 with open(OUT, "w") as f:
     f.write(HTML.replace("__DATA__", DATA).replace("__COMPARE__", COMPARE))
 print("écrit:", OUT)
+
+# données partagées (consommées aussi par le deck slides.html)
+DATAJS = os.path.join(os.path.dirname(__file__), "docs", "pii-data.js")
+with open(DATAJS, "w") as f:
+    f.write("window.PII_EXAMPLES=" + DATA + ";\nwindow.PII_COMPARE=" + COMPARE + ";\n")
+print("écrit:", DATAJS)

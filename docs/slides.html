@@ -95,6 +95,19 @@
   .hint{position:fixed;bottom:18px;left:24px;font-family:var(--mono);font-size:11px;color:var(--dim);z-index:10}
 
   @media (max-width:700px){.cols,.stats,ul.feat{grid-template-columns:1fr}.bar{grid-template-columns:120px 1fr auto}}
+  /* comparateurs intégrés */
+  .pii{display:inline-flex;align-items:center;gap:4px;background:var(--violet);color:#fff;border-radius:6px;padding:0 7px;font-size:.78em;font-weight:650;white-space:nowrap}
+  .leak{color:var(--clay);font-weight:650;text-decoration:underline wavy var(--clay);text-underline-offset:2px}
+  .mini{margin-top:20px}
+  .mtog{display:inline-flex;background:var(--violet-soft);border:1px solid var(--line);border-radius:100px;padding:4px;gap:4px;margin-bottom:10px}
+  .mtog button{border:0;background:none;cursor:pointer;font-weight:700;font-size:14px;color:var(--dim);padding:7px 16px;border-radius:100px;font-family:var(--sans)}
+  .mtog button.on{background:var(--violet);color:#fff}
+  .mcard{background:var(--slide);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-size:clamp(14px,1.7vw,19px);line-height:1.7}
+  .mcard b{font-weight:700}
+  .erow2{display:grid;grid-template-columns:168px 1fr;gap:12px;align-items:start;padding:9px 0;border-top:1px solid var(--line);font-size:clamp(12px,1.5vw,16px);line-height:1.6}
+  .erow2:first-child{border-top:0}
+  .erow2 .en{font-weight:700}.erow2 .en small{display:block;color:var(--dim);font-weight:500;font-size:11px;font-family:var(--mono)}
+  .erow2.ours .en{color:var(--violet)}.erow2.ours{background:var(--violet-soft);border-radius:10px;padding:9px 12px;border-top:0}
   @media print{
     .deck{height:auto;overflow:visible}.track{display:block;transform:none!important}
     .slide{height:100vh;page-break-after:always;overflow:hidden}
@@ -178,7 +191,8 @@
         <div class="bar"><div class="name" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="track2"><div class="fill f-hi"></div></div><div class="val" style="color:var(--mint)">1,00</div></div>
       </div>
       <p class="sub">Identifiants français — <strong>NIR, SIREN, SIRET</strong> : les autres <span style="color:var(--clay);font-weight:700">0</span>, nous <span class="mintc" style="font-weight:700">26 / 26</span>.</p>
-      <div class="foot">Essayez vous-même → grouzoul.github.io/d9-pii-protect/comparator.html</div>
+      <div class="mini" id="s7"></div>
+      <div class="foot">Détections réelles · comparateur complet → grouzoul.github.io/d9-pii-protect/comparator.html</div>
     </div></section>
 
     <!-- 8 — comment ça marche -->
@@ -199,6 +213,10 @@
         <li>Validation humaine (lien par email)</li>
         <li>Fail-closed · déployé chez vous</li>
       </ul>
+      <div class="mini">
+        <div class="mtog"><button id="s8h" onclick="s8('human')">👤 Humain</button><button id="s8a" onclick="s8('agent')">🤖 Agent IA</button></div>
+        <div class="mcard" id="s8card"></div>
+      </div>
     </div></section>
 
     <!-- 9 — chaîne de valeur -->
@@ -227,6 +245,7 @@
 <div class="hud"><div class="dots" id="dots"></div></div>
 <div class="count" id="count"></div>
 
+<script src="./pii-data.js"></script>
 <script>
   (function(){
     var track=document.getElementById('track');
@@ -249,6 +268,33 @@
       (e.clientX > window.innerWidth*0.4) ? next() : prev();
     });
     render();
+  })();
+</script>
+<script>
+  (function(){
+    var PX=window.PII_EXAMPLES||[], PC=window.PII_COMPARE||[];
+    var LBL={PERSON:"Nom",PRENOM_PERSONNE:"Prénom",NOM_PERSONNE:"Nom",LOCATION:"Lieu",NOM_VOIE:"Adresse",VILLE:"Ville",CODE_POSTAL:"Code postal",FR_NIR:"NIR",NUM_SECURITE_SOCIALE:"NIR",IBAN_CODE:"IBAN",IBAN:"IBAN",PHONE_NUMBER:"Téléphone",TELEPHONE:"Téléphone",EMAIL_ADDRESS:"Email",EMAIL:"Email",SIREN:"SIREN",SIRET:"SIRET",CREDIT_CARD:"Carte",DATE_FR:"Date",DATE:"Date",DATE_TIME:"Date",IP_ADDRESS:"IP",ORGANIZATION:"Société",US_DRIVER_LICENSE:"Permis US"};
+    function lab(t){return LBL[t]||t;}
+    function esc(s){return s.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+    function chip(l){return '<span class="pii">🔒 '+lab(l)+'</span>';}
+    window.s8=function(m){
+      var h=document.getElementById('s8h'),a=document.getElementById('s8a'); if(!h)return;
+      h.className=m==='human'?'on':''; a.className=m==='agent'?'on':'';
+      var segs=PX[0]||[];
+      document.getElementById('s8card').innerHTML=segs.map(function(x){return x.t!==undefined?esc(x.t):(m==='agent'?chip(x.p):'<b>'+esc(x.v)+'</b>');}).join('');
+    };
+    function s7(){
+      var ex=PC[0],el=document.getElementById('s7'); if(!ex||!el)return;
+      var engs=[['ours','d9 PII Protect','FR-first'],['presidio','Presidio','anglais'],['alcatraz','Hoop · Alcatraz','défaut']];
+      el.innerHTML=engs.map(function(e){
+        var c=ex.caught[e[0]],n=c.filter(Boolean).length,t=ex.text,pos=0,html='';
+        ex.spans.forEach(function(sp,i){var s=t.indexOf(sp.v,pos);if(s<0)s=pos;html+=esc(t.slice(pos,s));html+=c[i]?chip(sp.label):'<span class="leak">'+esc(sp.v)+'</span>';pos=s+sp.v.length;});
+        html+=esc(t.slice(pos));
+        return '<div class="erow2 '+(e[0]==='ours'?'ours':'')+'"><div class="en">'+e[1]+'<small>'+e[2]+' · '+n+'/'+c.length+'</small></div><div>'+html+'</div></div>';
+      }).join('');
+    }
+    if(window.s8) window.s8('agent');
+    s7();
   })();
 </script>
 </body>
