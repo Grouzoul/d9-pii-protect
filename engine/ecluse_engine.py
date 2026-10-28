@@ -49,6 +49,10 @@ def custom_fr_spans(text):
         out.append((m.start(), m.end(), "DATE_FR"))
     for m in _NIR_RE.finditer(text):
         out.append((m.start(), m.end(), "FR_NIR"))
+    for m in re.finditer(r"\b(?:\d[ -]?){13,19}\b", text):  # carte bancaire (Luhn)
+        ndig = len(re.sub(r"\D", "", m.group()))
+        if ndig not in (9, 14) and _luhn(m.group()):  # ne pas confondre avec SIREN(9)/SIRET(14)
+            out.append((m.start(), m.end(), "CREDIT_CARD"))
     for m in _DIGIT_RUN_RE.finditer(text):
         digits = re.sub(r"\D", "", m.group())
         if len(digits) == 9 and _luhn(digits):
@@ -72,13 +76,12 @@ def _dec(token: str) -> str:
     return _aes.decrypt(raw[:12], raw[12:], None).decode()
 
 def detect(text, language):
-    # 1) PII via Presidio/Anonym-IA (FR : noms, FR_NIR, IBAN, téléphone, email, lieu...)
-    raw = []
+    # 1) recognizers FR customs d'abord (NIR/SIREN/SIRET/CB/date) -> labels prioritaires sur chevauchement
+    raw = custom_fr_spans(text)
+    # 2) + PII via Presidio/Anonym-IA (noms, lieux, email, téléphone, IBAN...)
     for r in _post(ANALYZER_URL, {"text": text, "language": language}):
         if r.get("score", 1.0) >= THRESHOLD:
             raw.append((r["start"], r["end"], r["entity_type"]))
-    # 2) + recognizers FR customs (SIREN/SIRET Luhn, dates textuelles)
-    raw += custom_fr_spans(text)
     # 3) normalisation des bords (le NER déborde parfois d'un point)
     norm = []
     for s, e, t in raw:
@@ -171,6 +174,9 @@ class H(BaseHTTPRequestHandler):
             elif self.path == "/rehydrate":
                 out, c = rehydrate(text)
                 self._send(200, {"text": out, "count": c})
+            elif self.path == "/detect":
+                spans = detect(text, body.get("language", LANG))
+                self._send(200, {"spans": [{"start": s, "end": e, "type": t, "text": text[s:e]} for (s, e, t) in spans]})
             elif self.path in ("/anonymize-doc", "/rehydrate-doc"):
                 mode = "anonymize" if self.path == "/anonymize-doc" else "rehydrate"
                 raw = base64.b64decode(body.get("content_b64", ""))
