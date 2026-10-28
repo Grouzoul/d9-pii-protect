@@ -165,7 +165,7 @@
     <div class="grp">Sous le capot</div>
     <a href="#securite">Modèle de sécurité</a>
     <a href="#moteur">Moteur de détection FR</a>
-    <a href="#bedrock">Self-hosté / Bedrock ne suffit pas</a>
+    <a href="#bedrock">L'hébergement ne suffit pas</a>
     <div class="grp">Suite</div>
     <a href="#roadmap">Roadmap</a>
   </nav>
@@ -283,42 +283,30 @@
     </section>
 
     <section id="bedrock">
-      <p class="eyebrow">L'objection</p>
-      <h2>« Un LLM self-hosté ou Bedrock, ça ne suffit pas ? »</h2>
-      <p class="lede">Héberger le modèle soi-même, ou l'appeler via Bedrock (pas d'entraînement, résidence UE), sécurise <strong>un seul</strong> maillon : l'inférence. Ça ne répond ni à l'exigence RGPD de minimisation, ni à la traînée de l'agent.</p>
+      <p class="eyebrow">Concept</p>
+      <h2>Pourquoi l'hébergement du modèle ne suffit pas</h2>
+      <p>Faire tourner le modèle chez soi, ou via un fournisseur comme Bedrock (sans entraînement, en région UE), sécurise <em>où</em> l'inférence a lieu. C'est utile, mais deux problèmes restent entiers — et aucun ne dépend de l'endroit où tourne le modèle.</p>
 
-      <div class="note warn"><span class="lbl">Raison n°1 — RGPD pur : minimisation (art. 5.1.c)</span>Avant même la technique : <strong>une donnée personnelle non nécessaire à la tâche ne doit pas être traitée</strong> — donc pas envoyée à une IA, <strong>où qu'elle tourne</strong>. Un agent support n'a pas besoin du NIR en clair pour traiter un ticket ; le lui transmettre viole la minimisation, <strong>même self-hosté, même en UE</strong>. (L'EDPB rappelle en 2025 qu'un modèle n'est « anonyme » que si l'extraction de PII y est « insignifiante » — la plupart échouent.)</div>
+      <h3>1. La minimisation des données</h3>
+      <p>Le RGPD (article 5.1.c) impose de ne traiter que les données personnelles nécessaires à la tâche. Un agent de support n'a pas besoin de lire un numéro de sécurité sociale en clair pour traiter un ticket. Le lui transmettre — même vers un modèle hébergé en interne — reste un traitement de trop. La question n'est pas « où envoyer la donnée », mais « faut-il l'envoyer ».</p>
 
-      <p><strong>Raison n°2 — la traînée.</strong> Et même la PII que tu envoies ne reste pas dans l'inférence : self-hosté / Bedrock = le <strong>où</strong> du hop modèle ; la tokenisation = le <strong>quoi</strong> l'agent voit, et elle couvre <em>tous</em> les endroits où sa donnée atterrit.</p>
+      <h3>2. La propagation dans la chaîne de l'agent</h3>
+      <p>Les données qu'un agent reçoit ne restent pas dans l'appel au modèle : elles sont journalisées et stockées tout au long de la chaîne.</p>
+      <ul>
+        <li><strong>Traces et observabilité</strong> — les outils de suivi enregistrent entrées et sorties, souvent par défaut, parfois sur un service tiers.</li>
+        <li><strong>Résultats d'outils</strong> — ce qu'un agent lit en base revient dans son contexte, puis dans les logs.</li>
+        <li><strong>Mémoire et historique</strong> de conversation.</li>
+        <li><strong>Caches et logs applicatifs.</strong></li>
+        <li><strong>Systèmes en aval</strong> que l'agent alimente.</li>
+      </ul>
+      <p>Chaque étape est une copie de la donnée, à sécuriser, auditer et conserver. Héberger le modèle n'en couvre qu'une seule.</p>
 
-      <h3>L'inférence = 1 hop. Un agent = N points de persistance.</h3>
-      <table>
-        <tr><th>Où la PII de l'agent atterrit</th><th>Pourquoi ça fuit</th><th>Self-host / Bedrock&nbsp;?</th></tr>
-        <tr><td><strong>Traces / observabilité</strong><br>LangSmith, Langfuse, Datadog, OTel</td><td>captent <strong>entrées + sorties par défaut</strong>. Tu peux self-héberger ton LLM et quand même envoyer tous tes prompts à un SaaS de tracing (souvent US) : LangSmith n'a pas d'option self-hosted.</td><td class="bad">❌</td></tr>
-        <tr><td><strong>Tool calls</strong></td><td>le résultat d'une requête BDD de l'agent atterrit dans le contexte… puis dans les logs et la mémoire</td><td class="bad">❌</td></tr>
-        <tr><td><strong>Mémoire agent / historique</strong></td><td>conversation + contexte persistés = copies du clair</td><td class="bad">❌</td></tr>
-        <tr><td><strong>Cache de prompt / logs applicatifs</strong> (CloudWatch…)</td><td>chaque prompt complet est journalisé</td><td class="bad">❌</td></tr>
-        <tr><td><strong>Systèmes en aval</strong></td><td>ce que l'agent produit se propage</td><td class="bad">❌</td></tr>
-      </table>
-      <p class="dim">(Avec du RAG, le vector store devient une copie réversible de plus — les embeddings s'inversent. Mais même sans RAG, la traînée ci-dessus suffit.)</p>
+      <h3>La réponse : protéger le contenu, à la source</h3>
+      <p>En détectant et chiffrant les données personnelles <strong>avant</strong> qu'elles entrent dans le contexte de l'agent, on traite les deux problèmes à la fois : ce qui est inutile n'est jamais transmis, et ce qui circule ensuite — traces, mémoire, logs — est déjà chiffré. Il ne reste qu'un seul endroit où la donnée est en clair : la source.</p>
 
-      <div class="note warn"><span class="lbl">La faille classique</span>On rédige la PII <em>en entrée</em> du modèle… et on logue tout <em>en sortie</em>. « LangSmith capture toutes les entrées et sorties par défaut ». La règle : <strong>traiter le backend d'observabilité comme l'API LLM elle-même</strong>.</div>
+      <div class="note"><span class="lbl">À retenir</span>L'hébergement (self-hosté / Bedrock) décide <em>où</em> la donnée est traitée. La protection du contenu décide <em>quelle</em> donnée est exposée. La seconde est l'exigence de minimisation du RGPD — l'hébergement ne la remplace pas.</div>
 
-      <h3>Du mesurable</h3>
-      <table>
-        <tr><th>Donnée</th><th>Source</th></tr>
-        <tr><td><strong>Sensitive Information Disclosure</strong> passe de la 6ᵉ à la <strong>2ᵉ place</strong> en 2025</td><td>OWASP LLM Top 10 2025 (LLM02)</td></tr>
-        <tr><td><strong>8,5 %</strong> des prompts de production contiennent de la donnée sensible</td><td>étude 2024</td></tr>
-        <tr><td><strong>~19 %</strong> de fuite de PII en sortie d'un modèle <em>fine-tuné</em> sur des PII — non patchable</td><td>recherche</td></tr>
-        <tr><td>Un LLM n'est « anonyme » que si l'extraction de PII est « insignifiante » — la plupart échouent</td><td>EDPB, 2025</td></tr>
-        <tr><td>Amende <strong>15 M€</strong> (RGPD) contre un fournisseur LLM · shadow AI = <strong>670 k$</strong>/incident · <strong>40 %</strong> des fichiers uploadés vers des chatbots contiennent PII/PCI</td><td>Garante 2024 · IBM 2025 · LayerX</td></tr>
-      </table>
-
-      <div class="note"><span class="lbl">Notre approche = la mitigation recommandée</span>La littérature préconise la <strong>pseudonymisation par vault à tokens typés</strong> (ex. PresidioReversibleAnonymizer, Skyflow) + un <strong>NER dédié</strong> (pas le spaCy par défaut ; en prod, du XLM-RoBERTa atteint 98 % de rappel à 1 % de faux positifs). C'est exactement d9 PII Protect — en <strong>FR-first</strong>, et <strong>avant</strong> que la donnée entre dans la traînée.</div>
-
-      <div class="note warn"><span class="lbl">La phrase pour un DPO</span>« Que le modèle soit chez moi ou sur Bedrock, la tokenisation fait qu'il n'y a qu'<strong>un seul</strong> endroit où la PII est en clair — la source — au lieu d'une dizaine. »</div>
-
-      <p class="dim" style="font-size:14px">Sources : OWASP LLM Top 10 2025 · « PII in LLM Pipelines » (tianpan.co) · EDPB 2025 · Garante 2024 · IBM Cost of a Data Breach 2025 / LayerX.</p>
+      <p class="dim" style="font-size:14px">Pour aller plus loin : OWASP Top 10 for LLM Applications 2025 (LLM02) · EDPB 2025 · « PII in LLM Pipelines » (tianpan.co).</p>
     </section>
 
     <section id="roadmap">
@@ -326,6 +314,7 @@
       <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
       <ul>
         <li><strong>Secure-by-default</strong> — chiffré par défaut, clair uniquement pour une allowlist de rôles humains (fail-safe).</li>
+        <li><strong>Validation humaine (HITL)</strong> — pour les actions sensibles (écriture, ré-identification d'une PII), le hook met la requête en attente de l'approbation d'un humain avant de la laisser passer.</li>
         <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée : un document ré-uploadé hors fenêtre n'est plus rehydratable (clé tournée) → réversibilité bornée dans le temps.</li>
         <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
