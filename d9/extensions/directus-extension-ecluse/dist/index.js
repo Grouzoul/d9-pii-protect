@@ -53,7 +53,7 @@ async function bufferStream(stream) {
   return Buffer.concat(chunks);
 }
 
-export default ({ filter, init, action }, { logger, database, services, getSchema }) => {
+export default ({ filter, init, action }, { logger, database, services, getSchema, exceptions }) => {
   // -------- LECTURE : anonymisation des champs texte pour les rôles agents --------
   filter('items.read', async (payload, meta, ctx) => {
     const c = cfg();
@@ -87,7 +87,54 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
     return payload;
   };
   filter('items.create', rehydrate);
-  filter('items.update', rehydrate);
+
+  // -------- VALIDATION HUMAINE (HITL) sur actions sensibles --------
+  async function approvalsSvc() {
+    return new services.ItemsService('pii_approvals', { schema: await getSchema(), accountability: { admin: true, role: null } });
+  }
+  async function notify(c, info) {
+    // POINT D'EXTENSION : email aujourd'hui ; Slack / Teams / webhook demain (même signature).
+    const base = c.baseUrl || 'http://localhost:8060';
+    const approve = base + '/pii-protect/approve?token=' + info.token + '&d=approve';
+    const deny = base + '/pii-protect/approve?token=' + info.token + '&d=deny';
+    const html =
+      '<p>Un <b>agent IA</b> demande à <b>modifier</b> ' + info.target_collection + ' #' + info.target_item + '.</p>'
+      + '<p style="margin:18px 0">'
+      + '<a href="' + approve + '" style="background:#1f9e82;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">✅ Approuver</a>'
+      + '&nbsp;&nbsp;<a href="' + deny + '" style="background:#A84B38;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">⛔ Refuser</a></p>'
+      + '<p style="color:#888;font-size:12px">d9 PII Protect · réf ' + info.id + '</p>';
+    try {
+      const mail = new services.MailService({ schema: await getSchema(), accountability: { admin: true } });
+      await mail.send({ to: c.approvalEmail, subject: 'Validation requise — ' + info.target_collection + ' #' + info.target_item, html });
+      logger.info('[pii-protect] email de validation envoyé (réf ' + info.id + ')');
+    } catch (e) {
+      logger.warn('[pii-protect] notif indispo: ' + e.message + ' | lien: ' + approve);
+    }
+  }
+  const onUpdate = async (payload, meta, ctx) => {
+    const c = cfg();
+    const role = ctx && ctx.accountability && ctx.accountability.role;
+    const sensitive = c.approvals && c.approvals[meta.collection] && c.approvals[meta.collection].includes('update');
+    if (sensitive && role && await isAgentRole(ctx && ctx.database, role)) {
+      const keys = meta.keys || (meta.key != null ? [meta.key] : []);
+      const item = keys.length ? String(keys[0]) : '*';
+      const svc = await approvalsSvc();
+      const approved = await svc.readByQuery({ filter: { status: { _eq: 'approved' }, target_collection: { _eq: meta.collection }, target_item: { _eq: item }, agent_role: { _eq: role } }, sort: ['-id'], limit: 1 });
+      if (approved && approved.length) {
+        await svc.updateOne(approved[0].id, { status: 'used' }); // consommé → rejouable une fois
+      } else {
+        const token = globalThis.crypto.randomUUID();
+        const id = await svc.createOne({ status: 'pending', kind: 'update', target_collection: meta.collection, target_item: item, agent_role: role, token });
+        await notify(c, { id, token, target_collection: meta.collection, target_item: item });
+        const msg = 'Validation humaine requise : une demande d’approbation a été envoyée. Réessaie une fois approuvée (réf ' + id + ').';
+        if (exceptions && exceptions.InvalidPayloadException) throw new exceptions.InvalidPayloadException(msg);
+        if (exceptions && exceptions.ForbiddenException) throw new exceptions.ForbiddenException(msg);
+        throw new Error(msg);
+      }
+    }
+    return rehydrate(payload, meta);
+  };
+  filter('items.update', onUpdate);
 
   // -------- FICHIERS : documents texte tokenisés pour les rôles agents --------
   init('routes.before', ({ app }) => {
@@ -132,6 +179,30 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
       } catch (e) {
         logger.warn('[pii-protect] /assets: ' + e.message);
         return next();
+      }
+    });
+
+    // lien cliquable d'approbation (HITL) — ouvert depuis l'email
+    app.get('/pii-protect/approve', async (req, res) => {
+      try {
+        const token = req.query.token;
+        const decision = req.query.d === 'deny' ? 'denied' : 'approved';
+        if (!token) return res.status(400).send('token manquant');
+        const svc = new services.ItemsService('pii_approvals', { schema: await getSchema(), accountability: { admin: true, role: null } });
+        const found = await svc.readByQuery({ filter: { token: { _eq: token } }, limit: 1 });
+        const a = found && found[0];
+        if (!a) return res.status(404).send('Demande introuvable ou expirée.');
+        if (a.status === 'pending') await svc.updateOne(a.id, { status: decision });
+        const ok = decision === 'approved';
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.send('<!doctype html><meta charset="utf-8"><body style="font-family:system-ui;max-width:460px;margin:80px auto;text-align:center">'
+          + '<div style="font-size:52px">' + (ok ? '✅' : '⛔') + '</div>'
+          + '<h2>' + (ok ? 'Action approuvée' : 'Action refusée') + '</h2>'
+          + '<p style="color:#555">' + a.target_collection + ' #' + a.target_item + ' — l’agent peut ' + (ok ? 'maintenant procéder.' : 'ne pas procéder.') + '</p>'
+          + '<p style="color:#aaa;font-size:12px">d9 PII Protect</p></body>');
+      } catch (e) {
+        logger.warn('[pii-protect] approve: ' + e.message);
+        res.status(500).send('erreur');
       }
     });
   });

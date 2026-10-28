@@ -17,8 +17,22 @@ services:
       CACHE_ENABLED: "false"
       CORS_ENABLED: "true"
       EXTENSIONS_AUTO_RELOAD: "true"
+      EMAIL_TRANSPORT: smtp
+      EMAIL_FROM: no-reply@ecluse.io
+      EMAIL_SMTP_HOST: mailpit
+      EMAIL_SMTP_PORT: "1025"
+      EMAIL_SMTP_SECURE: "false"
     volumes:
       - ./extensions:/directus/extensions
       - ./database:/directus/database
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - mailpit
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ecluse-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
