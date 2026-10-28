@@ -219,6 +219,8 @@
       <h3>À l'écriture — rehydratation</h3>
       <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
       <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
+      <h3>Fichiers (documents texte)</h3>
+      <p>Un document <code>.txt</code> / <code>.docx</code> téléchargé par un agent (<code>/assets</code>) est tokenisé de la même façon, réversiblement ; un humain récupère l'original. <span class="dim">(Images &amp; PDF scannés : caviardage destructif — roadmap.)</span></p>
     </section>
 
     <section id="demarrage">
@@ -288,7 +290,7 @@
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
         <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
         <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
-        <li><strong>Documents</strong> — <code>.txt</code> / <code>.docx</code> : tokenisation <em>réversible</em> (moteur OK, à câbler sur <code>/assets</code>). Images &amp; PDF scannés : caviardage OCR <em>destructif</em> (OCR FR à ajouter).</li>
+        <li><strong>Caviardage images / PDF scannés</strong> — OCR destructif (Presidio image-redactor + OCR FR). <span class="dim">Les documents texte (.txt/.docx) sont déjà tokenisés réversiblement, y compris au téléchargement via <code>/assets</code>.</span></li>
         <li><strong>Industrialisation release</strong> — tout en variables d'environnement (clé via KMS, sans valeur par défaut), config relative, secrets hors du compose.</li>
         <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand requis.</li>
       </ul>
