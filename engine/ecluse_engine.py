@@ -13,7 +13,7 @@ Endpoints:
   POST /rehydrate   {"text": "...(avec marqueurs)"}   -> {"text": "...", "count": N}
   GET  /health
 """
-import base64, json, os, re, urllib.request
+import base64, io, json, os, re, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -31,6 +31,7 @@ MARKER_RE = re.compile(r"\[\[PII:([A-Z_]+):([A-Za-z0-9_\-]+={0,2})\]\]")
 _MOIS = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre"
 _DATE_FR_RE = re.compile(rf"\b\d{{1,2}}(?:er)?\s+(?:{_MOIS})(?:\s+\d{{4}})?\b", re.IGNORECASE)
 _DIGIT_RUN_RE = re.compile(r"\d[\d ]{7,}\d")
+_NIR_RE = re.compile(r"\b[12](?:[ .]?\d){14}\b")  # NIR FR : 15 chiffres (1/2 + 14), séparateurs tolérés
 
 def _luhn(s):
     d = [int(c) for c in s if c.isdigit()]
@@ -46,6 +47,8 @@ def custom_fr_spans(text):
     out = []
     for m in _DATE_FR_RE.finditer(text):
         out.append((m.start(), m.end(), "DATE_FR"))
+    for m in _NIR_RE.finditer(text):
+        out.append((m.start(), m.end(), "FR_NIR"))
     for m in _DIGIT_RUN_RE.finditer(text):
         digits = re.sub(r"\D", "", m.group())
         if len(digits) == 9 and _luhn(digits):
@@ -112,6 +115,40 @@ def rehydrate(text):
             return m.group(0)
     return MARKER_RE.sub(repl, text), n
 
+# ---- Documents TEXTE (réversible) : .txt/.md/.csv/.json + .docx ----
+def _docx_transform(data, fn):
+    from docx import Document
+    d = Document(io.BytesIO(data))
+    def paras(doc):
+        for p in doc.paragraphs:
+            yield p
+        for t in doc.tables:
+            for row in t.rows:
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        yield p
+    for p in paras(d):
+        if p.text.strip():
+            new = fn(p.text)
+            if new != p.text:
+                runs = list(p.runs)
+                for r in runs:
+                    r.text = ""
+                if runs:
+                    runs[0].text = new
+                else:
+                    p.add_run(new)
+    out = io.BytesIO(); d.save(out); return out.getvalue()
+
+def process_doc(filename, data, mode):
+    """mode = 'anonymize' | 'rehydrate'. Documents TEXTE uniquement (réversible)."""
+    ext = (filename or "").lower().rsplit(".", 1)[-1]
+    fn = (lambda t: anonymize(t, LANG)[0]) if mode == "anonymize" else (lambda t: rehydrate(t)[0])
+    if ext == "docx":
+        return _docx_transform(data, fn)
+    # défaut : texte brut (.txt/.md/.csv/.json/…)
+    return fn(data.decode("utf-8", "replace")).encode("utf-8")
+
 class H(BaseHTTPRequestHandler):
     def _send(self, code, obj):
         b = json.dumps(obj, ensure_ascii=False).encode()
@@ -134,6 +171,12 @@ class H(BaseHTTPRequestHandler):
             elif self.path == "/rehydrate":
                 out, c = rehydrate(text)
                 self._send(200, {"text": out, "count": c})
+            elif self.path in ("/anonymize-doc", "/rehydrate-doc"):
+                mode = "anonymize" if self.path == "/anonymize-doc" else "rehydrate"
+                raw = base64.b64decode(body.get("content_b64", ""))
+                out = process_doc(body.get("filename", ""), raw, mode)
+                self._send(200, {"filename": body.get("filename", ""),
+                                 "content_b64": base64.b64encode(out).decode()})
             else:
                 self._send(404, {"error": "not found"})
         except Exception as ex:

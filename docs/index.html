@@ -288,7 +288,7 @@
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
         <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
         <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
-        <li><strong>Images &amp; documents</strong> — redaction OCR des pièces jointes (Presidio image-redactor / Tesseract) pour les rôles agents.</li>
+        <li><strong>Documents</strong> — <code>.txt</code> / <code>.docx</code> : tokenisation <em>réversible</em> (moteur OK, à câbler sur <code>/assets</code>). Images &amp; PDF scannés : caviardage OCR <em>destructif</em> (OCR FR à ajouter).</li>
         <li><strong>Industrialisation release</strong> — tout en variables d'environnement (clé via KMS, sans valeur par défaut), config relative, secrets hors du compose.</li>
         <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand requis.</li>
       </ul>
