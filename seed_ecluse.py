@@ -71,6 +71,7 @@ def main():
         print(f"  + perm {collection}:{action}")
     perm("tickets", "read", ["*"])
     perm("tickets", "update", ["note", "statut"])
+    perm("directus_files", "read", ["*"])  # pour télécharger des documents (/assets)
 
     users = api("GET", f"/users?filter[email][_eq]={AGENT[0]}&fields=id", t)["data"]
     if not users:
