@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>d9 PII Protect — Deck</title>
+<style>
+  :root{
+    --violet:#6644FF; --violet-d:#4422dd; --violet-l:#a594ff; --violet-soft:#efecfe;
+    --mint:#1f9e82; --mint-bright:#2ecda7; --clay:#A84B38;
+    --bg:#f3f2fb; --slide:#ffffff; --ink:#272339; --dim:#6f6990; --line:#e4e1f2;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  .deck{height:100vh;overflow:hidden;position:relative}
+  .track{display:flex;height:100%;transition:transform .45s cubic-bezier(.6,0,.3,1)}
+  @media (prefers-reduced-motion:reduce){.track{transition:none}}
+  .slide{flex:0 0 100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;
+    padding:min(8vh,80px) min(9vw,110px);overflow:auto}
+  .slide > .inner{width:100%;max-width:1040px;margin:0 auto}
+  .kick{font-family:var(--mono);font-size:clamp(11px,1.3vw,14px);letter-spacing:.14em;text-transform:uppercase;color:var(--violet);margin:0 0 18px;display:flex;align-items:center;gap:9px}
+  .kick::before{content:"";width:22px;height:3px;border-radius:2px;background:var(--violet)}
+  h1{font-size:clamp(40px,8vw,92px);line-height:1;letter-spacing:-.04em;font-weight:830;margin:0}
+  h2{font-size:clamp(28px,4.6vw,52px);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin:0 0 .5em;text-wrap:balance}
+  .big{font-size:clamp(26px,4vw,46px);line-height:1.12;letter-spacing:-.02em;font-weight:780;text-wrap:balance}
+  p{font-size:clamp(16px,2vw,22px);line-height:1.5;color:var(--dim);max-width:30em}
+  .lead{color:var(--ink)}
+  .accent{color:var(--violet)} .mintc{color:var(--mint)}
+  strong{font-weight:720;color:var(--ink)}
+  .sub{margin-top:16px}
+  .foot{margin-top:40px;font-family:var(--mono);font-size:clamp(11px,1.3vw,14px);color:var(--dim);letter-spacing:.04em}
+
+  /* title slide */
+  .title h1 .dot{color:var(--violet)}
+  .mark{display:inline-flex;align-items:center;gap:14px;margin-bottom:28px}
+  .mark .sq{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--violet),var(--violet-l));
+    box-shadow:0 4px 0 var(--violet-d);display:grid;place-items:center;color:#fff;font-weight:830;font-size:18px}
+  .tag{font-family:var(--mono);font-size:13px;color:var(--violet);border:1px solid color-mix(in srgb,var(--violet) 40%,transparent);padding:3px 11px;border-radius:100px}
+
+  /* two columns */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:10px}
+  .card{background:var(--violet-soft);border:1px solid var(--line);border-radius:16px;padding:24px 26px}
+  .card h3{margin:0 0 8px;font-size:clamp(18px,2.2vw,24px);letter-spacing:-.01em}
+  .card p{font-size:clamp(14px,1.6vw,18px);margin:0}
+  .card .n{font-family:var(--mono);color:var(--violet);font-size:13px}
+
+  /* chips row */
+  .chips{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0}
+  .chip{background:var(--slide);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:650;font-size:clamp(14px,1.7vw,19px)}
+  .chip small{display:block;font-weight:500;color:var(--clay);font-family:var(--mono);font-size:11px;letter-spacing:.06em;margin-top:4px}
+
+  /* stat grid */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:10px}
+  .stat{background:var(--slide);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .stat .v{font-size:clamp(26px,3.4vw,40px);font-weight:820;letter-spacing:-.02em;color:var(--violet);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:clamp(12px,1.4vw,15px);color:var(--dim);margin-top:6px;line-height:1.3}
+  .stat .s{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:10px;letter-spacing:.04em;text-transform:uppercase}
+
+  /* bars */
+  .bars{margin-top:24px;display:flex;flex-direction:column;gap:18px}
+  .bar{display:grid;grid-template-columns:230px 1fr auto;align-items:center;gap:16px}
+  .bar .name{font-weight:650;font-size:clamp(14px,1.7vw,19px)}
+  .bar .name small{display:block;color:var(--dim);font-weight:500;font-size:12px}
+  .bar .track2{height:26px;border-radius:8px;background:var(--violet-soft);overflow:hidden}
+  .bar .fill{height:100%;border-radius:8px}
+  .bar .val{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(15px,1.8vw,20px)}
+  .f-lo{background:var(--clay);width:35%} .f-mid{background:var(--violet-l);width:87%} .f-hi{background:var(--mint-bright);width:100%}
+
+  /* flow */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:12px;margin:26px 0}
+  .node{flex:1 1 150px;min-width:140px;background:var(--slide);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .node.hl{border-color:var(--violet);background:var(--violet-soft)}
+  .node .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+  .node .b{font-weight:700;margin-top:4px;font-size:clamp(14px,1.6vw,18px)}
+  .arrow{display:flex;align-items:center;color:var(--violet);font-size:22px;font-weight:800}
+  ul.feat{margin:18px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;max-width:none}
+  ul.feat li{font-size:clamp(14px,1.7vw,18px);padding-left:26px;position:relative;color:var(--ink)}
+  ul.feat li::before{content:"✓";position:absolute;left:0;color:var(--mint);font-weight:800}
+
+  /* value chain */
+  .chain{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}
+  .brick{flex:1 1 220px;border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:var(--slide)}
+  .brick.p{background:var(--violet);color:#fff;border-color:var(--violet)}
+  .brick h3{margin:0 0 6px;font-size:clamp(17px,2vw,22px)}
+  .brick p{margin:0;font-size:clamp(13px,1.5vw,16px);color:inherit;opacity:.85}
+
+  /* nav ui */
+  .hud{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:14px;pointer-events:none;z-index:10}
+  .dots{display:flex;gap:8px;pointer-events:auto}
+  .dots button{width:9px;height:9px;border-radius:50%;border:0;background:var(--line);cursor:pointer;padding:0}
+  .dots button.on{background:var(--violet);transform:scale(1.25)}
+  .count{position:fixed;bottom:18px;right:24px;font-family:var(--mono);font-size:12px;color:var(--dim);z-index:10}
+  .hint{position:fixed;bottom:18px;left:24px;font-family:var(--mono);font-size:11px;color:var(--dim);z-index:10}
+
+  @media (max-width:700px){.cols,.stats,ul.feat{grid-template-columns:1fr}.bar{grid-template-columns:120px 1fr auto}}
+  @media print{
+    .deck{height:auto;overflow:visible}.track{display:block;transform:none!important}
+    .slide{height:100vh;page-break-after:always;overflow:hidden}
+    .hud,.count,.hint{display:none}
+    @page{size:landscape}
+  }
+  :focus-visible{outline:2px solid var(--violet);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="deck">
+  <div class="track" id="track">
+
+    <!-- 1 — titre -->
+    <section class="slide title"><div class="inner">
+      <div class="mark"><span class="sq">d9</span><span class="tag">extension d9 · La Webcapsule</span></div>
+      <h1>d9 PII&nbsp;Protect<span class="dot">.</span></h1>
+      <p class="lead sub big" style="color:var(--ink);max-width:22em">L'anonymisation <span class="accent">gouvernée</span> des données personnelles pour vos agents IA.</p>
+      <div class="foot">FR-first · chiffrement réversible · déployé dans votre environnement</div>
+    </div></section>
+
+    <!-- 2 — problème -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Le problème</p>
+      <h2>Vos agents IA lisent vos données.<br>Y compris les données personnelles.</h2>
+      <p>Le RBAC protège des <strong>champs entiers</strong>. Mais un NIR glissé dans un commentaire, un nom dans un ticket, passent <strong>en clair</strong> dans le contexte de l'agent — puis vers le modèle, les logs, la mémoire.</p>
+    </div></section>
+
+    <!-- 3 — solution une phrase -->
+    <section class="slide"><div class="inner">
+      <p class="kick">La solution</p>
+      <p class="big">d9 gère <span class="accent">qui</span> accède.<br>PII Protect gère <span class="mintc">ce que</span> l'agent voit.</p>
+      <p class="sub">Détection française + chiffrement réversible, appliqués <strong>à la source</strong> — avant que la donnée entre dans la chaîne de l'agent. Un humain autorisé ré-identifie sous contrôle.</p>
+    </div></section>
+
+    <!-- 4 — hébergement ne suffit pas -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Idée reçue</p>
+      <h2>« Un LLM self-hosté ou Bedrock, ça suffit. »</h2>
+      <div class="cols">
+        <div class="card"><div class="n">01 · Droit</div><h3>Minimisation (RGPD 5.1.c)</h3><p>Une donnée personnelle non nécessaire à la tâche ne doit pas être traitée — <strong>où que tourne le modèle</strong>.</p></div>
+        <div class="card"><div class="n">02 · Technique</div><h3>La traînée</h3><p>Ce que l'agent reçoit se recopie dans les traces, tool calls, mémoire, caches, logs, systèmes en aval.</p></div>
+      </div>
+      <div class="foot">L'hébergement décide le <strong>où</strong>. La protection du contenu décide le <strong>quoi</strong>.</div>
+    </div></section>
+
+    <!-- 5 — la traînée -->
+    <section class="slide"><div class="inner">
+      <p class="kick">La traînée de l'agent</p>
+      <p class="big">1 appel modèle = 1 hop.<br>Un agent = <span class="accent">N copies</span> de la donnée.</p>
+      <div class="chips">
+        <span class="chip">Traces / observabilité<small>❌ hébergement</small></span>
+        <span class="chip">Tool calls<small>❌ hébergement</small></span>
+        <span class="chip">Mémoire / historique<small>❌ hébergement</small></span>
+        <span class="chip">Caches / logs<small>❌ hébergement</small></span>
+        <span class="chip">Systèmes en aval<small>❌ hébergement</small></span>
+      </div>
+      <p>Tokeniser <strong>à la source</strong> couvre les N d'un seul coup : il ne reste qu'un endroit où la donnée est en clair.</p>
+    </div></section>
+
+    <!-- 6 — chiffres -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Ce que dit l'industrie</p>
+      <div class="stats">
+        <div class="stat"><div class="v">#2</div><div class="l">« Sensitive Information Disclosure » — en hausse</div><div class="s">OWASP LLM Top 10 2025</div></div>
+        <div class="stat"><div class="v">8,5 %</div><div class="l">des prompts de production contiennent du sensible</div><div class="s">étude 2024</div></div>
+        <div class="stat"><div class="v">15 M€</div><div class="l">amende RGPD contre un fournisseur LLM</div><div class="s">Garante, 2024</div></div>
+        <div class="stat"><div class="v">670 k$</div><div class="l">coût moyen d'un incident « shadow AI »</div><div class="s">IBM, 2025</div></div>
+        <div class="stat"><div class="v">40 %</div><div class="l">des fichiers envoyés à des chatbots contiennent PII/PCI</div><div class="s">LayerX</div></div>
+        <div class="stat"><div class="v">≈ 0</div><div class="l">un LLM « anonyme » seulement si l'extraction est « insignifiante »</div><div class="s">EDPB, 2025</div></div>
+      </div>
+    </div></section>
+
+    <!-- 7 — benchmark moteur -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Moteur FR — mesuré (corpus 46 PII)</p>
+      <h2>Détecter le français, là où les autres sont aveugles</h2>
+      <div class="bars">
+        <div class="bar"><div class="name">hoop · Alcatraz<small>défaut</small></div><div class="track2"><div class="fill f-lo"></div></div><div class="val">0,35</div></div>
+        <div class="bar"><div class="name">hoop · Presidio<small>anglais</small></div><div class="track2"><div class="fill f-mid"></div></div><div class="val">0,87</div></div>
+        <div class="bar"><div class="name" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="track2"><div class="fill f-hi"></div></div><div class="val" style="color:var(--mint)">1,00</div></div>
+      </div>
+      <p class="sub">Identifiants français — <strong>NIR, SIREN, SIRET</strong> : les autres <span style="color:var(--clay);font-weight:700">0</span>, nous <span class="mintc" style="font-weight:700">26 / 26</span>.</p>
+    </div></section>
+
+    <!-- 8 — comment ça marche -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Comment ça marche</p>
+      <div class="flow">
+        <div class="node"><div class="t">Agent IA</div><div class="b">GET /items, /assets</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="t">d9</div><div class="b">RBAC + hook</div></div>
+        <div class="arrow">→</div>
+        <div class="node hl"><div class="t">Moteur FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
+        <div class="arrow">→</div>
+        <div class="node"><div class="t">Agent reçoit</div><div class="b">[[PII:…]] chiffré</div></div>
+      </div>
+      <ul class="feat">
+        <li>Lecture <em>et</em> écriture (round-trip réversible)</li>
+        <li>Champs BDD <em>et</em> fichiers (.docx / .txt)</li>
+        <li>Validation humaine (lien par email)</li>
+        <li>Fail-closed · déployé chez vous</li>
+      </ul>
+    </div></section>
+
+    <!-- 9 — chaîne de valeur -->
+    <section class="slide"><div class="inner">
+      <p class="kick">La chaîne de valeur</p>
+      <h2>Trois briques complémentaires</h2>
+      <div class="chain">
+        <div class="brick"><h3>d9</h3><p>Vos bases → des API gouvernées, avec RBAC et tokens.</p></div>
+        <div class="brick p"><h3>PII Protect</h3><p>Anonymisation FR réversible du contenu, par rôle.</p></div>
+        <div class="brick"><h3>Webcapsule</h3><p>Déploiement, dans l'environnement du client.</p></div>
+      </div>
+      <div class="foot">Souverain : données, modèle et clés ne sortent pas de chez vous.</div>
+    </div></section>
+
+    <!-- 10 — clôture -->
+    <section class="slide"><div class="inner">
+      <p class="kick">Dès aujourd'hui</p>
+      <p class="big">Préparez vos métiers aux agents IA.<br>Sans jamais exposer vos clients.</p>
+      <div class="foot">support@webcapsule.io · grouzoul.github.io/d9-pii-protect</div>
+    </div></section>
+
+  </div>
+</div>
+
+<div class="hint">← → naviguer</div>
+<div class="hud"><div class="dots" id="dots"></div></div>
+<div class="count" id="count"></div>
+
+<script>
+  (function(){
+    var track=document.getElementById('track');
+    var slides=Array.prototype.slice.call(track.children);
+    var n=slides.length, i=0;
+    var dots=document.getElementById('dots'), count=document.getElementById('count');
+    for(var k=0;k<n;k++){(function(k){var b=document.createElement('button');b.setAttribute('aria-label','Slide '+(k+1));b.onclick=function(){go(k)};dots.appendChild(b)})(k)}
+    function render(){track.style.transform='translateX('+(-i*100)+'vw)';
+      count.textContent=(i+1)+' / '+n;
+      Array.prototype.forEach.call(dots.children,function(d,k){d.className=k===i?'on':''});}
+    function go(k){i=Math.max(0,Math.min(n-1,k));render()}
+    function next(){go(i+1)} function prev(){go(i-1)}
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();next()}
+      else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();prev()}
+      else if(e.key==='Home'){go(0)} else if(e.key==='End'){go(n-1)}
+    });
+    document.querySelector('.deck').addEventListener('click',function(e){
+      if(e.target.closest('.dots'))return;
+      (e.clientX > window.innerWidth*0.4) ? next() : prev();
+    });
+    render();
+  })();
+</script>
+</body>
+</html>
