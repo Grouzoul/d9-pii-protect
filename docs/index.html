@@ -222,6 +222,9 @@
       <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
       <h3>Fichiers (documents texte)</h3>
       <p>Un document <code>.txt</code> / <code>.docx</code> téléchargé par un agent (<code>/assets</code>) est tokenisé réversiblement ; s'il le <strong>ré-uploade</strong> (nouvelle version), les marqueurs sont <strong>rehydratés avant stockage</strong>. L'agent peut donc <strong>lire ET mettre à jour</strong> un document sans jamais voir la PII ; un humain récupère toujours l'original. <span class="dim">(Images &amp; PDF scannés : caviardage destructif — roadmap.)</span></p>
+
+      <h3>Validation humaine (actions sensibles)</h3>
+      <p>Certaines actions d'un agent peuvent exiger l'accord d'un humain. Pour les opérations configurées comme sensibles (par exemple la modification d'un enregistrement), l'extension met la requête <strong>en attente</strong> et envoie un <strong>lien d'approbation</strong> au responsable ; l'action ne passe qu'une fois approuvée. La notification se fait aujourd'hui par email — le même point d'extension permet d'y brancher Slack, Teams ou une validation 2FA.</p>
     </section>
 
     <section id="demarrage">
@@ -314,7 +317,7 @@
       <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
       <ul>
         <li><strong>Secure-by-default</strong> — chiffré par défaut, clair uniquement pour une allowlist de rôles humains (fail-safe).</li>
-        <li><strong>Validation humaine (HITL)</strong> — pour les actions sensibles (écriture, ré-identification d'une PII), le hook met la requête en attente de l'approbation d'un humain avant de la laisser passer.</li>
+        <li><strong>Validation humaine — canaux &amp; renforcement</strong> — au-delà de l'email (déjà en place) : notifications Slack / Teams, approbation 2FA, et validation push sur mobile (type « nouvel appareil »).</li>
         <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée : un document ré-uploadé hors fenêtre n'est plus rehydratable (clé tournée) → réversibilité bornée dans le temps.</li>
         <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
         <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>

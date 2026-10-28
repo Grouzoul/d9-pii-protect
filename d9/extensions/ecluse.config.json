@@ -5,5 +5,10 @@
     "tickets": [
       "note"
     ]
-  }
+  },
+  "approvals": {
+    "tickets": ["update"]
+  },
+  "approvalEmail": "owner@example.com",
+  "baseUrl": "http://localhost:8060"
 }

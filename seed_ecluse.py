@@ -55,6 +55,25 @@ def main():
     else:
         print("= collection tickets existe")
 
+    if "pii_approvals" not in cols:
+        api("POST", "/collections", t, {
+            "collection": "pii_approvals", "schema": {},
+            "meta": {"icon": "verified_user", "note": "Demandes de validation humaine (HITL)."},
+            "fields": [
+                {"field": "id", "type": "integer", "meta": {"hidden": True},
+                 "schema": {"is_primary_key": True, "has_auto_increment": True}},
+                {"field": "status", "type": "string", "meta": {"interface": "input"}},
+                {"field": "kind", "type": "string", "meta": {"interface": "input"}},
+                {"field": "target_collection", "type": "string", "meta": {"interface": "input"}},
+                {"field": "target_item", "type": "string", "meta": {"interface": "input"}},
+                {"field": "agent_role", "type": "string", "meta": {"interface": "input"}},
+                {"field": "token", "type": "string", "meta": {"interface": "input"}},
+                {"field": "date_created", "type": "timestamp", "meta": {"interface": "datetime", "special": ["date-created"]}},
+            ],
+        }); print("+ collection pii_approvals")
+    else:
+        print("= collection pii_approvals existe")
+
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
         role_id = roles["agent"]; print("= rôle agent existe")
