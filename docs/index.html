@@ -237,7 +237,7 @@
         <li><strong>Lancez la stack de référence</strong> (d9 + le moteur sidecar). Le moteur se construit tout seul.
           <pre>cd deploy
 cp .env.example .env            <span class="c"># renseigner PII_PROTECT_KEY</span>
-docker compose up -d --build    <span class="c"># d9 sur :8055 + moteur + mailpit</span></pre></li>
+docker compose up -d --build    <span class="c"># d9 sur :8055 + moteur</span></pre></li>
         <li><strong>Marquez le rôle « Agent IA »</strong> : activez le toggle <code>is_agent</code> sur la définition du rôle (c'est le seul ajout d'interface).</li>
         <li><strong>C'est tout — secure-by-default.</strong> Sans aucune config, tous les champs <code>text</code> et tous les fichiers accessibles à ce rôle sont protégés. Un agent lit l'API d9 habituelle ; un humain voit le clair.
           <pre>curl /items/tickets -H "Authorization: Bearer <span class="c">$TOKEN_AGENT</span>"
