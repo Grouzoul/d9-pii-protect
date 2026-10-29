@@ -21,6 +21,8 @@ import { defineHook } from '@directus/extensions-sdk';
 import { Readable } from 'node:stream';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
+// Auto-appel de d9 sur son port interne (configurable via l'env PORT de Directus, défaut 8055). Jamais en dur.
+const SELF = 'http://127.0.0.1:' + (process.env.PORT || '8055');
 // Types de fichiers traités par type de contenu. Hors de ces listes -> refus fail-closed (secure-by-default).
 const TEXT_DOCS = ['txt', 'md', 'csv', 'json', 'docx'];
 const IMAGE_DOCS = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'tif', 'webp'];
@@ -109,7 +111,7 @@ export default defineHook(({ filter, init, action }, { logger, database, service
         if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next(); // requête interne -> original
         if (!(await isAgentRole(database, req.accountability?.role))) return next();   // humain -> original
         const sep = req.originalUrl.includes('?') ? '&' : '?';
-        const orig = await fetch('http://127.0.0.1:8055' + req.originalUrl + sep + 'ecluse_bypass=1',
+        const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1',
           { headers: { authorization: req.headers.authorization || '' } });
         if (!orig.ok) return next();
         const ctype = orig.headers.get('content-type') || 'application/octet-stream';

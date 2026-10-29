@@ -1,0 +1,7 @@
+Dossier client
+
+Contact : Jean Dupont
+NIR : 1 85 05 78 006 084 36
+Email : jean.dupont@example.fr
+Téléphone : 06 12 34 56 78
+Société : Durand SARL (SIRET 552 100 554 00005)

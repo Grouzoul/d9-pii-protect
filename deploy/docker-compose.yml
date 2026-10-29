@@ -26,7 +26,7 @@ services:
   d9:
     image: d9-main:latest
     depends_on: [engine]
-    ports: ["8060:8055"]
+    ports: ["8055:8055"]
     environment:
       KEY: d9-pii-protect-key
       SECRET: d9-pii-protect-secret

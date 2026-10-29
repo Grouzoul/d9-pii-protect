@@ -174,7 +174,7 @@
     <div class="hero">
       <p class="eyebrow">Extension d9 · anonymisation gouvernée</p>
       <h1>Vos agents IA lisent vos données.<br>Jamais vos données personnelles.</h1>
-      <p class="taglines">Une extension d9 qui détecte les PII françaises dans vos champs texte libre et les <strong>chiffre à la volée, de façon réversible</strong>, pour tout agent IA — sans toucher à ce que voient vos utilisateurs humains.</p>
+      <p class="taglines">Une extension d9 qui détecte les PII françaises dans vos champs texte libre, vos documents et vos images, et les <strong>chiffre (ou caviarde) à la volée, de façon réversible</strong>, pour tout agent IA — sans toucher à ce que voient vos utilisateurs humains.</p>
       <div class="cta">
         <a class="btn p" href="#demarrage">Démarrage rapide →</a>
         <a class="btn g" href="./comparator.html">Comparateur interactif</a>
@@ -210,10 +210,11 @@
         <div class="node"><div class="t">Détection FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
       </div>
       <h3>À la lecture — anonymisation</h3>
-      <p>Si le demandeur a un rôle agent, chaque champ texte libre configuré traverse le moteur. Les PII deviennent des marqueurs auto-porteurs <code>[[PII:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
+      <p>Si le demandeur a un rôle agent, chaque champ texte libre traverse le moteur — <strong>par défaut, sans configuration</strong>. Les PII deviennent des marqueurs auto-porteurs <code>[[PII:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
       <pre><span class="c">// réponse vue par un agent</span>
-{ "note": "Le client [[PII:PERSON:9MUXB2me…]] (NIR [[PII:FR_NIR:C1OIENV…]])
-            conteste un prélèvement sur son IBAN [[PII:IBAN_CODE:mpoZ9GG…]]." }
+{ "note": "Le client [[PII:PRENOM_PERSONNE:9MUXB2me…]] [[PII:NOM_PERSONNE:a7Fz…]]
+            (NIR [[PII:NUM_SECURITE_SOCIALE:C1OIENV…]]) conteste un prélèvement
+            sur son IBAN [[PII:IBAN_CODE:mpoZ9GG…]]." }
 
 <span class="c">// même enregistrement, vu par un humain (rôle admin)</span>
 { "note": "Le client Jean Dupont (NIR 1 85 05 78 006 084 36)
@@ -221,43 +222,41 @@
       <h3>À l'écriture — rehydratation</h3>
       <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
       <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
-      <h3>Fichiers (documents texte)</h3>
-      <p>Un document <code>.txt</code> / <code>.docx</code> téléchargé par un agent (<code>/assets</code>) est tokenisé réversiblement ; s'il le <strong>ré-uploade</strong> (nouvelle version), les marqueurs sont <strong>rehydratés avant stockage</strong>. L'agent peut donc <strong>lire ET mettre à jour</strong> un document sans jamais voir la PII ; un humain récupère toujours l'original. <span class="dim">(Images &amp; PDF scannés : caviardage destructif — roadmap.)</span></p>
-
-      <h3>Validation humaine (actions sensibles)</h3>
-      <p>Certaines actions d'un agent peuvent exiger l'accord d'un humain. Pour les opérations configurées comme sensibles (par exemple la modification d'un enregistrement), l'extension met la requête <strong>en attente</strong> et envoie un <strong>lien d'approbation</strong> au responsable ; l'action ne passe qu'une fois approuvée. La notification se fait aujourd'hui par email — le même point d'extension permet d'y brancher Slack, Teams ou une validation 2FA.</p>
+      <h3>Fichiers — secure-by-default sur tout</h3>
+      <p>Pas seulement les champs : <strong>tout fichier accessible à un agent</strong> est protégé à la volée au téléchargement (<code>/assets</code>), selon son type :</p>
+      <ul>
+        <li><strong>Documents texte</strong> (<code>.txt</code> / <code>.md</code> / <code>.csv</code> / <code>.json</code> / <code>.docx</code>) → tokenisés réversiblement, comme les champs. S'il le <strong>ré-uploade</strong>, les marqueurs sont <strong>rehydratés avant stockage</strong> : l'agent peut lire ET mettre à jour sans jamais voir la PII.</li>
+        <li><strong>Images</strong> (PNG/JPG…) → <strong>caviardées</strong> (OCR + masquage des zones PII). Destructif pour la copie de l'agent ; le fichier stocké reste intact et l'humain autorisé télécharge l'original.</li>
+        <li><strong>Type non pris en charge</strong> (PDF, binaire…) → <strong>refus fail-closed</strong> (HTTP 415). On ne laisse rien fuir par défaut.</li>
+      </ul>
     </section>
 
     <section id="demarrage">
       <h2>Démarrage rapide</h2>
       <ol class="steps">
-        <li><strong>Posez l'extension</strong> dans le dossier <code>extensions/</code> de votre d9 (hook non-sandboxé — accès à l'<code>accountability</code>).
-          <pre>extensions/
-└─ directus-extension-ecluse/
-   ├─ package.json   <span class="c"># "directus:extension": { type:hook, path+source }</span>
-   └─ index.js</pre></li>
-        <li><strong>Lancez le moteur</strong> d'anonymisation (détection FR + chiffrement), joignable par d9.
-          <pre><span class="k">PII_ANALYZER_URL</span>=http://presidio-fr:5005/analyze \
-<span class="k">PII_PROTECT_KEY</span>=&lt;clé AES 32o&gt;  python engine.py   <span class="c"># :8077</span></pre></li>
-        <li><strong>Marquez le rôle « Agent IA »</strong> (toggle <code>is_agent</code> sur le rôle) et déclarez les <strong>champs</strong> à protéger dans <code>ecluse.config.json</code> (lu à chaud).</li>
-        <li><strong>C'est tout.</strong> Un agent lit l'API d9 habituelle : les PII des champs ciblés sont chiffrées. Un humain voit le clair.
+        <li><strong>Lancez la stack de référence</strong> (d9 + le moteur sidecar). Le moteur se construit tout seul.
+          <pre>cd deploy
+cp .env.example .env            <span class="c"># renseigner PII_PROTECT_KEY</span>
+docker compose up -d --build    <span class="c"># d9 sur :8055 + moteur + mailpit</span></pre></li>
+        <li><strong>Marquez le rôle « Agent IA »</strong> : activez le toggle <code>is_agent</code> sur la définition du rôle (c'est le seul ajout d'interface).</li>
+        <li><strong>C'est tout — secure-by-default.</strong> Sans aucune config, tous les champs <code>text</code> et tous les fichiers accessibles à ce rôle sont protégés. Un agent lit l'API d9 habituelle ; un humain voit le clair.
           <pre>curl /items/tickets -H "Authorization: Bearer <span class="c">$TOKEN_AGENT</span>"
-<span class="c"># → note : "… [[PII:FR_NIR:…]] …"</span></pre></li>
+<span class="c"># → note : "… [[PII:NUM_SECURITE_SOCIALE:…]] …"</span></pre></li>
       </ol>
-      <div class="note"><span class="lbl">Déployé chez vous</span>d9, l'extension et le moteur FR tournent dans votre environnement. Aucune PII en clair ne sort vers un tiers.</div>
+      <div class="note"><span class="lbl">Déployé chez vous</span>d9, l'extension et le moteur FR tournent dans votre environnement — <strong>un moteur par environnement</strong>. Aucune PII en clair ne sort vers un tiers.</div>
     </section>
 
     <section id="configuration">
       <h2>Configuration</h2>
-      <p>Un seul fichier, relu à chaud (pas de redémarrage) : <code>extensions/ecluse.config.json</code>.</p>
-      <pre>{
-  <span class="k">"engine"</span>: <span class="s">"http://host.docker.internal:8077"</span>,  <span class="k">"fields"</span>: { <span class="s">"tickets"</span>: [<span class="s">"note"</span>] }
-}</pre>
+      <p>Tout est piloté par <strong>variables d'environnement</strong> — aucun fichier de config, aucun couplage à un environnement précis. Par défaut tout est protégé ; on restreint ensuite.</p>
       <table>
-        <tr><th>Clé</th><th>Rôle</th></tr>
-        <tr><td><code>engine</code></td><td>URL du moteur d'anonymisation (dans votre réseau).</td></tr>
-        <tr><td><strong>Rôle « Agent IA »</strong></td><td>Les rôles agents sont désignés par le toggle <code>Agent IA</code> (champ <code>is_agent</code>) sur la page du rôle — pas dans ce fichier. Les autres rôles voient le clair.</td></tr>
-        <tr><td><code>fields</code></td><td>Collections → champs texte libre à passer dans le moteur.</td></tr>
+        <tr><th>Variable</th><th>Brique</th><th>Rôle</th></tr>
+        <tr><td><code>PII_PROTECT_KEY</code></td><td>moteur</td><td>Clé AES-256 (secret/KMS en prod). La custody = la frontière de sécurité.</td></tr>
+        <tr><td><code>PII_PROTECT_ENGINE_URL</code></td><td>extension</td><td>URL du moteur sidecar (dans le réseau de l'environnement).</td></tr>
+        <tr><td><code>PII_PROTECT_FIELDS</code></td><td>extension</td><td>JSON <code>{collection:[champs]}</code> pour restreindre. Vide = <strong>tous les champs <code>text</code></strong>.</td></tr>
+        <tr><td><code>PII_PROTECT_ENTITIES</code> / <code>PII_PROTECT_SKIP</code></td><td>moteur</td><td>Allow-list / deny-list des <strong>types</strong> de PII à chiffrer.</td></tr>
+        <tr><td><code>PII_NER_MODEL</code></td><td>moteur</td><td>Modèle NER HuggingFace (swap de langue/modèle — cf. <code>engine/MODELS.md</code>).</td></tr>
+        <tr><td><strong>Toggle <code>is_agent</code></strong></td><td>rôle</td><td>Désigne les rôles « agents » sur la page du rôle. Les autres voient le clair.</td></tr>
       </table>
     </section>
 
@@ -315,18 +314,16 @@
 
     <section id="roadmap">
       <h2>Roadmap</h2>
-      <p>Le POC couvre déjà le cœur : détection FR, chiffrement réversible, round-trip, fail-closed. Évolutions simples à venir&nbsp;:</p>
+      <p><strong>Déjà livré :</strong> détection FR (Presidio + Anonym-IA), chiffrement réversible AES-GCM, round-trip lecture/écriture, <strong>secure-by-default</strong> sur tous les champs texte, documents et images (caviardage OCR), refus fail-closed des types non pris en charge, tout piloté par variables d'environnement.</p>
+      <p><strong>À venir :</strong></p>
       <ul>
-        <li><strong>Secure-by-default</strong> — chiffré par défaut, clair uniquement pour une allowlist de rôles humains (fail-safe).</li>
-        <li><strong>Validation humaine — canaux &amp; renforcement</strong> — au-delà de l'email (déjà en place) : notifications Slack / Teams, approbation 2FA, et validation push sur mobile (type « nouvel appareil »).</li>
-        <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée : un document ré-uploadé hors fenêtre n'est plus rehydratable (clé tournée) → réversibilité bornée dans le temps.</li>
-        <li><strong>Custody de clé</strong> — KMS/HSM, rotation, et <strong>journal d'audit des ré-identifications</strong> (qui a déchiffré quoi, quand).</li>
-        <li><strong>Policies par champ en UI</strong> — choisir par champ l'opérateur (chiffrer / hash-à-clé / rédiger) depuis le studio d9, au lieu du fichier config.</li>
-        <li><strong>Recognizers FR additionnels</strong> — RIB, plaque, n° de dossier, cadastre ; NER custom branchable (CamemBERT / Anonym-IA en ONNX).</li>
-        <li><strong>Mode « API existante »</strong> — la même brique d'anonymisation en ligne devant une API tierce (Airtable, service interne), hors d9.</li>
-        <li><strong>Caviardage images / PDF scannés</strong> — OCR destructif (Presidio image-redactor + OCR FR). <span class="dim">Les documents texte (.txt/.docx) sont déjà tokenisés réversiblement, y compris au téléchargement via <code>/assets</code>.</span></li>
-        <li><strong>Industrialisation release</strong> — tout en variables d'environnement (clé via KMS, sans valeur par défaut), config relative, secrets hors du compose.</li>
-        <li><strong>Chiffrement déterministe optionnel</strong> — préserver les clés de jointure quand requis.</li>
+        <li><strong>Validation humaine (HITL)</strong> — mise en attente + lien d'approbation pour la ré-identification ; notifications email puis Slack / Teams / 2FA. <span class="dim">Phase 2, possiblement payante.</span></li>
+        <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée → réversibilité bornée dans le temps ; custody via KMS/HSM + journal d'audit des ré-identifications.</li>
+        <li><strong>PDF</strong> (texte et scanné) — aujourd'hui refusé fail-closed, faute de pipeline OCR PDF.</li>
+        <li><strong>Mode déterministe optionnel</strong> — même entrée → même jeton, pour préserver les clés de jointure quand requis.</li>
+        <li><strong>Distribution 1-clic</strong> — extension publiée sur <strong>npm</strong> (marketplace Directus) + moteur sur un registry de conteneurs (GHCR).</li>
+        <li><strong>Sidecar standalone</strong> — la même brique d'anonymisation devant une API tierce, hors d9.</li>
+        <li><strong>Recognizers FR additionnels</strong> + affinage NER par langue (NER en ONNX quantifié pour alléger l'image).</li>
       </ul>
     </section>
   </main>
