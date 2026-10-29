@@ -1,13 +1,15 @@
 /**
  * directus-extension-pii-protect — sortie buildée (dist). Source : src/index.ts.
  * Rôle « Agent IA » (is_agent) → chiffre les champs TEXTE LIBRE (secure-by-default),
- * rehydrate à l'écriture, documents texte via /assets (+ round-trip au ré-upload).
+ * rehydrate à l'écriture ; SECURE-BY-DEFAULT sur TOUT fichier via /assets : docs texte anonymisés,
+ * images caviardées, type non pris en charge = refus fail-closed (+ round-trip au ré-upload).
  * Piloté par env : PII_PROTECT_ENGINE_URL, PII_PROTECT_FIELDS. Pas de logs custom (audit d9 natif).
  */
 import { Readable } from 'node:stream';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
 const TEXT_DOCS = ['txt', 'md', 'csv', 'json', 'docx'];
+const IMAGE_DOCS = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'tif', 'webp'];
 
 let FIELDS_MAP = null;
 if (process.env.PII_PROTECT_FIELDS && process.env.PII_PROTECT_FIELDS !== '*') {
@@ -94,23 +96,25 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
         const cdisp = orig.headers.get('content-disposition') || '';
         const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp);
         const name = decodeURIComponent((m && m[1]) || String(req.params.pk));
-        const ext = name.toLowerCase().split('.').pop();
+        const ext = name.toLowerCase().split('.').pop() || '';
         const buf = Buffer.from(await orig.arrayBuffer());
-        if (!TEXT_DOCS.includes(ext)) {
-          res.setHeader('content-type', ctype);
-          if (cdisp) res.setHeader('content-disposition', cdisp);
-          return res.send(buf);
+        // Routage par type. Inconnu (PDF, binaire…) -> refus fail-closed : rien ne fuit (secure-by-default).
+        const endpoint = TEXT_DOCS.includes(ext) ? '/anonymize-doc'
+                       : IMAGE_DOCS.includes(ext) ? '/redact-image'
+                       : null;
+        if (!endpoint) {
+          return res.status(415).send('[protégé — type de fichier non pris en charge]');
         }
         let out;
         try {
-          const r = await fetch(ENGINE + '/anonymize-doc', {
+          const r = await fetch(ENGINE + endpoint, {
             method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ filename: name, content_b64: buf.toString('base64') }),
           });
           if (!r.ok) throw new Error('engine HTTP ' + r.status);
           out = Buffer.from((await r.json()).content_b64, 'base64');
         } catch (e) {
-          logger.warn('[pii-protect] /assets doc indispo: ' + e.message);
+          logger.warn('[pii-protect] /assets ' + endpoint + ' indispo: ' + e.message);
           return res.status(503).send('[protégé — moteur indisponible]');
         }
         res.setHeader('content-type', ctype);

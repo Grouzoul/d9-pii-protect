@@ -1,55 +1,74 @@
-# d9 PII Protect — anonymisation gouvernée des PII pour agents IA (dans d9)
+# d9 PII Protect
 
-> POC « brique manquante ». *Écluse* = nom de code interne du moteur d'anonymisation.
+**Anonymisation gouvernée des PII pour les agents IA, dans [d9](https://github.com/LaWebcapsule/d9) (fork Directus 9).**
 
-**L'idée :** d9 gère le RBAC (qui accède à quoi). Écluse gère le **contenu PII** des champs
-texte libre — ce que le RBAC au champ ne peut pas voir (un NIR tapé dans un `note`).
-Pour un user de **rôle agent**, les PII sont **détectées (moteur FR) et chiffrées in-place
-(AES-256-GCM réversible)** à la lecture ; **rehydratées à l'écriture**. Un humain voit le clair.
+Le RBAC décide *qui accède à quoi*. PII Protect couvre l'angle mort : le **contenu PII des champs
+libres et des fichiers** — un NIR tapé dans une `note`, un nom dans un `.docx`, une pièce d'identité
+scannée. Pour un utilisateur de **rôle « agent »**, les PII sont **détectées (moteur FR) puis
+chiffrées de façon réversible** (texte/documents) ou **caviardées** (images) ; un **humain autorisé**
+voit l'original. La ré-identification est décidée par le RBAC d9 + la custody de la clé.
 
-```
-Agent IA ──GET /items/tickets──▶  d9 (RBAC) ──hook items.read──▶ Écluse engine ──▶ Presidio/Anonym-IA (FR)
-   ◀── note chiffrée in-place ───                                   └── AES-GCM encrypt/decrypt
-Humain  ──GET /items/tickets──▶  d9 ──▶ note en clair
-```
+> Mesuré sur un corpus FR : **détection 46/46** (identifiants FR NIR/SIREN/SIRET inclus), là où
+> hoop.dev/Alcatraz fait 16/46 et hoop.dev/Presidio-EN ~0 sur les identifiants français.
 
-## Démo live (1 commande)
+## Architecture en deux briques
 
-```bash
-bash demo.sh
-```
-Montre côte à côte : humain = PII en clair, agent = PII chiffrées. Même base, même endpoint.
+- **`engine/`** — un **sidecar Docker auto-suffisant** : [Presidio](https://microsoft.github.io/presidio/)
+  (orchestration) + NER FR [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french)
+  + recognizers regex/checksum (SIREN, SIRET, IBAN, NIR…) + chiffrement **AES-256-GCM** maison + caviardage
+  d'images (Tesseract OCR). **Un moteur par environnement** (confinement — pas de proxy central).
+- **`extension/`** — l'**intégration 1-clic dans d9** : un hook par rôle + un seul ajout UI (le toggle
+  `is_agent` sur la définition du rôle). Entièrement **piloté par variables d'environnement**.
 
-## Ce qui tourne
+Détail et schéma : **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
-| Brique | Où | Détail |
-|---|---|---|
-| **d9 dédié** | http://localhost:8060 | image `d9-main:latest`, SQLite, admin `admin@ecluse.io` / `ecluse-admin` |
-| **Plugin Écluse** | `d9/extensions/directus-extension-ecluse/` | hook `items.read` (anonymise) + `items.create/update` (rehydrate) |
-| **Engine Écluse** | http://localhost:8077 | `/anonymize` `/rehydrate` — détection FR + AES-256-GCM in-place |
-| **Moteur FR** | Presidio/Anonym-IA :5005 + :5001 | CamemBERT/Anonym-IA (FR_NIR…) + customs SIREN/SIRET/date FR |
+## Démarrage rapide
 
-- Rôle agent : `agent@ecluse.io` / `agent-pwd`. Champ anonymisé : `tickets.note` (configurable dans `d9/extensions/ecluse.config.json`).
-- **Fail-closed** : si l'engine est indispo, le champ est masqué (`[protégé — Écluse indisponible]`), jamais laissé en clair.
-
-## Démarrer / arrêter / dépanner
+Prérequis : Docker, et l'image `d9-main:latest` disponible localement.
 
 ```bash
-# d9
-cd d9 && docker compose up -d        # démarrer
-docker compose logs -f d9            # logs (chercher "[ecluse] hook chargé")
-docker compose down                  # arrêter
-
-# engine (host, port 8077)
-curl -s localhost:8077/health
-# relancer si besoin :
-pkill -f ecluse_engine.py
-nohup <venv>/bin/python engine/ecluse_engine.py > engine/engine.log 2>&1 &
+cd deploy
+cp .env.example .env            # renseigner au minimum PII_PROTECT_KEY
+docker compose up -d --build    # construit le moteur + lance d9 + mailpit
 ```
 
-## Limites du POC (à dire en transparence)
+- d9 : http://localhost:8060 (admin défini dans `.env`)
+- Mettre un rôle en mode agent : passer `is_agent = true` sur le rôle (champ booléen sur `directus_roles`).
+  → **secure-by-default** : tous les champs `text` et tous les fichiers accessibles à ce rôle sont protégés.
 
-- Clé de chiffrement = clé démo en dur. **En prod : custody gouvernée (KMS/HSM), rotation, accès RBAC + audit.**
-- Anonymise les champs texte libre configurés ; un vrai déploiement couvre tous les champs + le JSON imbriqué.
-- Le label d'entité peut diverger (Anonym-IA tague parfois un SIREN en `FR_NIR`) — **la valeur est chiffrée dans tous les cas** (ce qui compte pour la fuite).
-- Détection FR mesurée par ailleurs : **46/46** vs hoop/Alcatraz 16/46, hoop/Presidio-EN ~0 sur les IDs FR.
+## Configuration (variables d'environnement)
+
+| Variable | Brique | Rôle | Défaut |
+|---|---|---|---|
+| `PII_PROTECT_KEY` | moteur | **Clé AES-256** (secret/KMS en prod). La custody = la frontière de sécurité. | — (obligatoire) |
+| `PII_PROTECT_ENGINE_URL` | extension | URL du moteur sidecar. | `http://engine:8077` |
+| `PII_PROTECT_FIELDS` | extension | JSON `{collection:[champs]}` pour restreindre. Vide = **tous les champs `text`**. | *(vide)* |
+| `PII_PROTECT_ENTITIES` | moteur | Allow-list : seuls ces types de PII sont chiffrés. | *(vide = tous)* |
+| `PII_PROTECT_SKIP` | moteur | Deny-list : ces types restent en clair. | *(vide)* |
+| `PII_NER_MODEL` | moteur | Modèle NER HuggingFace (voir [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
+| `PII_NER_THRESHOLD` | moteur | Seuil de confiance du NER. | `0.4` |
+| `PII_OCR_LANG` | moteur | Langue Tesseract pour le caviardage d'images. | `fra` |
+
+**Secure-by-default** : sans configuration, tout ce qui est accessible à un rôle agent est protégé
+(champs texte, documents, images). On restreint *ensuite*, pas l'inverse.
+
+## Personnalisation (points flaggés dans le code)
+
+- Ajouter une **regex / recognizer** → `engine/recognizers.py` (bloc « AJOUTER UN RECOGNIZER »).
+- Changer le **modèle NER** (langue, modèle) → `PII_NER_MODEL` + `engine/MODELS.md`.
+- Choisir **quels types** sont chiffrés → `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
+- Choisir **quels champs** sont traités → `PII_PROTECT_FIELDS`.
+
+## Roadmap
+
+- [ ] **Validation humaine (HITL)** — workflow d'approbation pour la ré-identification (phase 2, possiblement payant).
+- [ ] **Rotation de clé** + fenêtre de validité des jetons ; custody via KMS/HSM.
+- [ ] **PDF** (texte et scanné) — aujourd'hui refusé fail-closed faute de pipeline OCR PDF.
+- [ ] **Mode déterministe** optionnel (même entrée → même jeton) pour corrélation inter-appels.
+- [ ] **Canaux de notification** (Slack/Teams) pour les demandes de ré-identification.
+- [ ] **Sidecar standalone** documenté (réutilisation hors d9).
+- [ ] Enrichir les recognizers + affiner le NER (par langue).
+
+## Licence
+
+MIT — voir [LICENSE](LICENSE).

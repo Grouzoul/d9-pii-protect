@@ -11,6 +11,7 @@ Endpoints (JSON) :
   POST /rehydrate      {text}                  -> {text, count}
   POST /anonymize-doc  {filename, content_b64} -> {filename, content_b64}   (.txt/.md/.csv/.json/.docx)
   POST /rehydrate-doc  {filename, content_b64} -> {filename, content_b64}
+  POST /redact-image   {filename, content_b64} -> {filename, content_b64}   (caviardage OCR, destructif)
   POST /detect         {text}                  -> {spans:[{start,end,type,text}]}
   GET  /health
 
@@ -24,8 +25,27 @@ import analyzer
 
 PORT = int(os.environ.get("PORT", "8077"))
 
+# ╔══════════════════════════════════════════════════════════════════════════╗
+# ║  CHOISIR CE QUI EST CHIFFRÉ (par TYPE de PII)                              ║
+# ║  Par défaut : tout ce qui est détecté est chiffré (secure-by-default).     ║
+# ║    PII_PROTECT_ENTITIES = "NOM_PERSONNE,PRENOM_PERSONNE,NUM_SECURITE..."    ║
+# ║        -> allow-list : SEULS ces types sont chiffrés (le reste reste clair) ║
+# ║    PII_PROTECT_SKIP = "VILLE,DATE,CODE_POSTAL"                              ║
+# ║        -> deny-list : ces types restent en clair (tout le reste chiffré)    ║
+# ║  (le filtrage par CHAMP se fait côté extension via PII_PROTECT_FIELDS)      ║
+# ╚══════════════════════════════════════════════════════════════════════════╝
+def _types_env(name):
+    return {t.strip().upper() for t in os.environ.get(name, "").split(",") if t.strip()}
+ONLY_TYPES = _types_env("PII_PROTECT_ENTITIES")   # vide = pas de restriction
+SKIP_TYPES = _types_env("PII_PROTECT_SKIP")
+
+def _should_encrypt(entity_type):
+    if ONLY_TYPES and entity_type not in ONLY_TYPES:
+        return False
+    return entity_type not in SKIP_TYPES
+
 def anonymize(text):
-    spans = analyzer.detect(text)
+    spans = [sp for sp in analyzer.detect(text) if _should_encrypt(sp[2])]
     out, entities = text, []
     for s, e, t in sorted(spans, key=lambda x: x[0], reverse=True):
         out = out[:s] + crypto.marker(t, text[s:e]) + out[e:]
@@ -86,6 +106,10 @@ class H(BaseHTTPRequestHandler):
             elif self.path in ("/anonymize-doc", "/rehydrate-doc"):
                 mode = "anonymize" if self.path == "/anonymize-doc" else "rehydrate"
                 out = process_doc(body.get("filename", ""), base64.b64decode(body.get("content_b64", "")), mode)
+                self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
+            elif self.path == "/redact-image":
+                import image_redact
+                out = image_redact.redact_image(base64.b64decode(body.get("content_b64", "")))
                 self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
             else:
                 self._send(404, {"error": "not found"})

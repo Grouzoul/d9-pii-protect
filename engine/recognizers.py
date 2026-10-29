@@ -36,13 +36,16 @@ def _ndig(s): return sum(c.isdigit() for c in s)
 _MOIS = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre"
 
 # --- Recognizers SANS checksum : (ENTITÉ, regex, score, [mots de contexte]) ---
+# NB : on réutilise le VOCABULAIRE DE TYPES du modèle NER (voir ner.py LABELS) pour qu'il n'y ait
+# qu'UNE liste de types à connaître (ex. PII_PROTECT_SKIP=DATE couvre toutes les dates). Si tu
+# changes de modèle NER, aligne ces noms sur son jeu d'entités.
 SIMPLE = [
-    ("EMAIL_ADDRESS", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", 0.9, ["email", "mail", "contact"]),
-    ("PHONE_NUMBER",  r"(?:\+33|0)[\s.]?\d(?:[\s.]?\d\d){4}", 0.6, ["tel", "téléphone", "appeler", "joindre", "portable"]),
-    ("IP_ADDRESS",    r"\b(?:\d{1,3}\.){3}\d{1,3}\b", 0.6, ["ip", "serveur", "adresse"]),
-    ("FR_NIR",        r"\b[12](?:[ .]?\d){14}\b", 0.7, ["nir", "sécurité sociale", "sécu", "assuré", "sociale"]),
-    ("DATE_FR",       rf"\b\d{{1,2}}(?:er)?\s+(?:{_MOIS})(?:\s+\d{{4}})?\b", 0.6, ["né", "née", "le", "date"]),
-    ("DATE",          r"\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b", 0.5, []),
+    ("EMAIL",     r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", 0.9, ["email", "mail", "contact"]),
+    ("TELEPHONE", r"(?:\+33|0)[\s.]?\d(?:[\s.]?\d\d){4}", 0.6, ["tel", "téléphone", "appeler", "joindre", "portable"]),
+    ("IP",        r"\b(?:\d{1,3}\.){3}\d{1,3}\b", 0.6, ["ip", "serveur", "adresse"]),
+    ("NUM_SECURITE_SOCIALE", r"\b[12](?:[ .]?\d){14}\b", 0.7, ["nir", "sécurité sociale", "sécu", "assuré", "sociale"]),
+    ("DATE",      rf"\b\d{{1,2}}(?:er)?\s+(?:{_MOIS})(?:\s+\d{{4}})?\b", 0.6, ["né", "née", "le", "date"]),
+    ("DATE",      r"\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b", 0.5, []),
 ]
 
 class _Checksum(PatternRecognizer):

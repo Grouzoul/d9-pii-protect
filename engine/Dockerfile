@@ -8,15 +8,20 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /engine
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+# build-essential (compilation) + Tesseract OCR FR. Pas de libGL : on utilise opencv-python-headless (serveur).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential tesseract-ocr tesseract-ocr-fra libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # torch CPU (bien plus léger que la version GPU par défaut)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    # presidio-image-redactor tire opencv-python (GUI/libGL) ; on le remplace par la variante headless (serveur).
+    && pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null; \
+    pip install --no-cache-dir opencv-python-headless
 
-COPY app.py crypto.py recognizers.py ner.py ./
+COPY app.py analyzer.py crypto.py recognizers.py ner.py image_redact.py ./
 
 # Modèle NER baké dans l'image -> démarrage hors-ligne, pas de téléchargement au runtime.
 ARG PII_NER_MODEL=Anonym-IA/V2-camembert-ner-pii-french

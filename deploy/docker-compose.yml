@@ -1,0 +1,59 @@
+# Déploiement de référence : d9 + le moteur d'anonymisation PII (sidecar) + Mailpit (optionnel).
+#
+#   - "engine"  = le sidecar auto-suffisant (Presidio FR + NER + chiffrement AES-GCM). UN par environnement.
+#   - "d9"      = Directus 9 (fork) avec l'extension PII Protect montée (hook par rôle).
+#   - "mailpit" = boîte mail de dev pour tester les notifications (phase 2 HITL). Supprimable.
+#
+# Copier .env.example -> .env, renseigner PII_PROTECT_KEY, puis : docker compose up -d --build
+services:
+  engine:
+    build:
+      context: ../engine
+      # Pour swapper le modèle NER au build : args: { PII_NER_MODEL: "<hf/model>" } (voir engine/MODELS.md)
+    image: ecluse-engine:latest
+    environment:
+      # ===== SÉCURITÉ : clé de chiffrement. En prod, injecter via secret/KMS. =====
+      PII_PROTECT_KEY: ${PII_PROTECT_KEY:?Définir PII_PROTECT_KEY dans .env}
+      # Choisir ce qui est chiffré PAR TYPE (vide = tout ; voir engine/app.py) :
+      PII_PROTECT_ENTITIES: ${PII_PROTECT_ENTITIES:-}   # allow-list (seuls ces types), vide = pas de restriction
+      PII_PROTECT_SKIP: ${PII_PROTECT_SKIP:-}           # deny-list (ces types restent en clair)
+      PII_NER_MODEL: ${PII_NER_MODEL:-Anonym-IA/V2-camembert-ner-pii-french}
+      PII_NER_THRESHOLD: ${PII_NER_THRESHOLD:-0.4}
+    # Non exposé publiquement : seul d9 (réseau interne) parle au moteur. Décommenter pour debug local.
+    # ports: ["8077:8077"]
+    restart: unless-stopped
+
+  d9:
+    image: d9-main:latest
+    depends_on: [engine]
+    ports: ["8060:8055"]
+    environment:
+      KEY: d9-pii-protect-key
+      SECRET: d9-pii-protect-secret
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ecluse.io}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ecluse-admin}
+      DB_CLIENT: sqlite3
+      DB_FILENAME: /directus/database/data.db
+      EXTENSIONS_PATH: /directus/extensions
+      CACHE_ENABLED: "false"
+      # ===== L'extension lit SON moteur ici. Aucun couplage d'environnement en dur. =====
+      PII_PROTECT_ENGINE_URL: http://engine:8077
+      # Optionnel : restreindre les champs traités (JSON {collection:[champs]}). Vide = secure-by-default = tous les champs 'text'.
+      PII_PROTECT_FIELDS: ${PII_PROTECT_FIELDS:-}
+      # Mail (phase 2 HITL) via mailpit :
+      EMAIL_TRANSPORT: smtp
+      EMAIL_SMTP_HOST: mailpit
+      EMAIL_SMTP_PORT: "1025"
+    volumes:
+      - ../extension:/directus/extensions/directus-extension-pii-protect:ro
+      - d9_db:/directus/database
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["8025:8025"]   # UI web
+    restart: unless-stopped
+
+volumes:
+  d9_db:

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Seed de la démo Écluse sur le d9 dédié (:8060).
+"""Seed de la démo PII Protect sur le d9 dédié (:8060).
 Collection tickets (champ note = texte libre avec PII FR), rôle agent + user agent,
-puis écrit ecluse.config.json avec l'ID du rôle agent."""
-import json, os, urllib.request, urllib.error
+champ booléen `is_agent` sur les rôles (le toggle que lit l'extension) activé sur le rôle agent.
+Secure-by-default : aucune config de champ à écrire — l'extension protège tous les champs `text`."""
+import json, urllib.request, urllib.error
 
 BASE = "http://localhost:8060"
 ADMIN = ("admin@ecluse.io", "ecluse-admin")
 AGENT = ("agent@ecluse.io", "agent-pwd")
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "d9", "extensions", "ecluse.config.json")
 
 def login(email, pwd):
     req = urllib.request.Request(f"{BASE}/auth/login",
@@ -55,32 +55,27 @@ def main():
     else:
         print("= collection tickets existe")
 
-    if "pii_approvals" not in cols:
-        api("POST", "/collections", t, {
-            "collection": "pii_approvals", "schema": {},
-            "meta": {"icon": "verified_user", "note": "Demandes de validation humaine (HITL)."},
-            "fields": [
-                {"field": "id", "type": "integer", "meta": {"hidden": True},
-                 "schema": {"is_primary_key": True, "has_auto_increment": True}},
-                {"field": "status", "type": "string", "meta": {"interface": "input"}},
-                {"field": "kind", "type": "string", "meta": {"interface": "input"}},
-                {"field": "target_collection", "type": "string", "meta": {"interface": "input"}},
-                {"field": "target_item", "type": "string", "meta": {"interface": "input"}},
-                {"field": "agent_role", "type": "string", "meta": {"interface": "input"}},
-                {"field": "token", "type": "string", "meta": {"interface": "input"}},
-                {"field": "date_created", "type": "timestamp", "meta": {"interface": "datetime", "special": ["date-created"]}},
-            ],
-        }); print("+ collection pii_approvals")
+    # Le toggle que lit l'extension : champ booléen `is_agent` sur les rôles (seul ajout UI).
+    role_fields = {f["field"] for f in api("GET", "/fields/directus_roles", t)["data"]}
+    if "is_agent" not in role_fields:
+        api("POST", "/fields/directus_roles", t, {
+            "field": "is_agent", "type": "boolean",
+            "meta": {"interface": "boolean", "special": ["cast-boolean"],
+                     "note": "Filtrer/anonymiser les PII pour ce rôle (agents IA)."},
+            "schema": {"default_value": False},
+        }); print("+ champ is_agent sur directus_roles")
     else:
-        print("= collection pii_approvals existe")
+        print("= champ is_agent existe")
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
         role_id = roles["agent"]; print("= rôle agent existe")
     else:
         role_id = api("POST", "/roles", t, {"name": "agent", "admin_access": False,
-            "app_access": True, "description": "Agent IA — lecture tickets (contenu PII anonymisé par Écluse)."})["data"]["id"]
+            "app_access": True, "description": "Agent IA — lecture tickets (contenu PII anonymisé par PII Protect)."})["data"]["id"]
         print("+ rôle agent", role_id)
+    # Active le toggle is_agent sur le rôle agent.
+    api("PATCH", f"/roles/{role_id}", t, {"is_agent": True}); print("  is_agent = true")
 
     def perm(collection, action, fields):
         q = f"/permissions?filter[role][_eq]={role_id}&filter[collection][_eq]={collection}&filter[action][_eq]={action}"
@@ -111,10 +106,7 @@ def main():
     else:
         print("= tickets déjà présents")
 
-    cfg = {"engine": "http://host.docker.internal:8077", "agentRoleIds": [role_id], "fields": {"tickets": ["note"]}}
-    with open(CONFIG_PATH, "w") as f: json.dump(cfg, f, indent=2, ensure_ascii=False)
-    print("\nconfig écrite:", CONFIG_PATH)
-    print(json.dumps(cfg, indent=2, ensure_ascii=False))
+    print("\nSeed terminé. Rôle agent =", role_id, "(is_agent actif). Secure-by-default : aucun champ à configurer.")
 
 if __name__ == "__main__":
     main()
