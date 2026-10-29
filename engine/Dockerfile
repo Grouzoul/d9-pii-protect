@@ -8,9 +8,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /engine
 
-# build-essential (compilation) + Tesseract OCR FR. Pas de libGL : on utilise opencv-python-headless (serveur).
+# build-essential + Tesseract OCR FR + poppler (rendu PDF pour le caviardage). Pas de libGL : opencv-python-headless.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential tesseract-ocr tesseract-ocr-fra libglib2.0-0 \
+    build-essential tesseract-ocr tesseract-ocr-fra libglib2.0-0 poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # torch CPU (bien plus léger que la version GPU par défaut)
