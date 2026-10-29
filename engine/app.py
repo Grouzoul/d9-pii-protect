@@ -12,6 +12,7 @@ Endpoints (JSON) :
   POST /anonymize-doc  {filename, content_b64} -> {filename, content_b64}   (.txt/.md/.csv/.json/.docx)
   POST /rehydrate-doc  {filename, content_b64} -> {filename, content_b64}
   POST /redact-image   {filename, content_b64} -> {filename, content_b64}   (caviardage OCR, destructif)
+  POST /redact-pdf     {filename, content_b64} -> {filename, content_b64}   (PDF -> pages caviardées, destructif)
   POST /detect         {text}                  -> {spans:[{start,end,type,text}]}
   GET  /health
 
@@ -107,9 +108,10 @@ class H(BaseHTTPRequestHandler):
                 mode = "anonymize" if self.path == "/anonymize-doc" else "rehydrate"
                 out = process_doc(body.get("filename", ""), base64.b64decode(body.get("content_b64", "")), mode)
                 self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
-            elif self.path == "/redact-image":
+            elif self.path in ("/redact-image", "/redact-pdf"):
                 import image_redact
-                out = image_redact.redact_image(base64.b64decode(body.get("content_b64", "")))
+                raw = base64.b64decode(body.get("content_b64", ""))
+                out = image_redact.redact_pdf(raw) if self.path == "/redact-pdf" else image_redact.redact_image(raw)
                 self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
             else:
                 self._send(404, {"error": "not found"})

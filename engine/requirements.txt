@@ -1,6 +1,7 @@
 # torch est installé à part (CPU) dans le Dockerfile
 presidio-analyzer>=2.2
 presidio-image-redactor>=0.0.53
+pdf2image
 pillow
 spacy>=3.7
 transformers>=4.40

@@ -17,11 +17,14 @@ let FIELDS_MAP = null;
 if (process.env.PII_PROTECT_FIELDS && process.env.PII_PROTECT_FIELDS !== '*') {
   try { FIELDS_MAP = JSON.parse(process.env.PII_PROTECT_FIELDS); } catch { FIELDS_MAP = null; }
 }
+const FILE_META_FIELDS = ['filename_download', 'title', 'description'];
 function freeTextFields(schema, collection) {
   if (FIELDS_MAP) return FIELDS_MAP[collection] || [];
   try {
     const fields = (schema && schema.collections && schema.collections[collection] && schema.collections[collection].fields) || {};
-    return Object.values(fields).filter((f) => f.type === 'text').map((f) => f.field);
+    const texts = Object.values(fields).filter((f) => f.type === 'text').map((f) => f.field);
+    if (collection === 'directus_files') return Array.from(new Set([...texts, ...FILE_META_FIELDS]));
+    return texts;
   } catch { return []; }
 }
 
@@ -86,45 +89,77 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
   filter('items.update', rehydrate);
 
   init('routes.before', ({ app }) => {
-    app.get('/assets/:pk', async (req, res, next) => {
+    // d9 n'émet pas items.read pour directus_files -> on intercepte /files pour anonymiser nom/titre/description.
+    const anonFileMeta = async (o) => {
+      if (!o || typeof o !== 'object') return;
+      for (const f of FILE_META_FIELDS) {
+        if (typeof o[f] === 'string' && o[f]) {
+          try { o[f] = await call('/anonymize', o[f]); } catch { o[f] = '[protégé — indisponible]'; }
+        }
+      }
+    };
+    const filesHandler = async (req, res, next) => {
+      if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next();
+      let agent = false;
+      try { agent = await isAgentRole(database, req.accountability && req.accountability.role); } catch { agent = false; }
+      if (!agent) return next();
       try {
-        if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next();
-        if (!(await isAgentRole(database, req.accountability && req.accountability.role))) return next();
         const sep = req.originalUrl.includes('?') ? '&' : '?';
-        const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1',
-          { headers: { authorization: req.headers.authorization || '' } });
-        if (!orig.ok) return next();
+        const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1', {
+          headers: { authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' },
+        });
+        if (!orig.ok) return res.status(orig.status && orig.status !== 200 ? orig.status : 502).json({ errors: [{ message: 'protégé — accès refusé' }] });
+        const json = await orig.json();
+        if (Array.isArray(json && json.data)) for (const it of json.data) await anonFileMeta(it);
+        else await anonFileMeta(json && json.data);
+        return res.json(json);
+      } catch (e) {
+        logger.warn('[pii-protect] /files (agent, fail-closed): ' + e.message);
+        return res.status(503).json({ errors: [{ message: 'protégé — indisponible' }] });
+      }
+    };
+    app.get('/files', filesHandler);
+    app.get('/files/:pk', filesHandler);
+
+    app.get('/assets/:pk', async (req, res, next) => {
+      if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next(); // interne -> original
+      let agent = false;
+      try { agent = await isAgentRole(database, req.accountability && req.accountability.role); } catch { agent = false; }
+      if (!agent) return next(); // humain -> original (RBAC d9)
+      try {
+        // Re-fetch interne : transmettre TOUTES les creds (header + cookie ; token en query déjà dans originalUrl).
+        const sep = req.originalUrl.includes('?') ? '&' : '?';
+        const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1', {
+          headers: { authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' },
+        });
+        if (!orig.ok) {
+          return res.status(orig.status && orig.status !== 200 ? orig.status : 502).send('[protégé — accès refusé]'); // fail-closed
+        }
         const ctype = orig.headers.get('content-type') || 'application/octet-stream';
         const cdisp = orig.headers.get('content-disposition') || '';
         const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp);
         const name = decodeURIComponent((m && m[1]) || String(req.params.pk));
         const ext = name.toLowerCase().split('.').pop() || '';
         const buf = Buffer.from(await orig.arrayBuffer());
-        // Routage par type. Inconnu (PDF, binaire…) -> refus fail-closed : rien ne fuit (secure-by-default).
         const endpoint = TEXT_DOCS.includes(ext) ? '/anonymize-doc'
                        : IMAGE_DOCS.includes(ext) ? '/redact-image'
+                       : ext === 'pdf' ? '/redact-pdf'
                        : null;
         if (!endpoint) {
           return res.status(415).send('[protégé — type de fichier non pris en charge]');
         }
-        let out;
-        try {
-          const r = await fetch(ENGINE + endpoint, {
-            method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ filename: name, content_b64: buf.toString('base64') }),
-          });
-          if (!r.ok) throw new Error('engine HTTP ' + r.status);
-          out = Buffer.from((await r.json()).content_b64, 'base64');
-        } catch (e) {
-          logger.warn('[pii-protect] /assets ' + endpoint + ' indispo: ' + e.message);
-          return res.status(503).send('[protégé — moteur indisponible]');
-        }
+        const r = await fetch(ENGINE + endpoint, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ filename: name, content_b64: buf.toString('base64') }),
+        });
+        if (!r.ok) throw new Error('engine HTTP ' + r.status);
+        const out = Buffer.from((await r.json()).content_b64, 'base64');
         res.setHeader('content-type', ctype);
         if (cdisp) res.setHeader('content-disposition', cdisp);
         return res.send(out);
       } catch (e) {
-        logger.warn('[pii-protect] /assets: ' + e.message);
-        return next();
+        logger.warn('[pii-protect] /assets (agent, fail-closed): ' + e.message);
+        return res.status(503).send('[protégé — moteur indisponible]'); // jamais next()->clair
       }
     });
   });

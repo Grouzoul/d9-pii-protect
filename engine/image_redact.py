@@ -30,15 +30,27 @@ def _engine():
 def warmup():
     _engine()
 
+def _redact_one(img):
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGB")
+    return _engine().redact(img, fill=FILL, language="fr", ocr_kwargs={"lang": OCR_LANG})
+
 def redact_image(data: bytes) -> bytes:
     img = Image.open(io.BytesIO(data))
     fmt = (img.format or "PNG").upper()
-    if img.mode not in ("RGB", "RGBA"):
-        img = img.convert("RGB")
-    red = _engine().redact(img, fill=FILL, language="fr", ocr_kwargs={"lang": OCR_LANG})
+    red = _redact_one(img)
     out = io.BytesIO()
     # JPEG ne gère pas l'alpha
     if fmt in ("JPG", "JPEG") and red.mode == "RGBA":
         red = red.convert("RGB")
     red.save(out, format="JPEG" if fmt == "JPG" else fmt)
+    return out.getvalue()
+
+def redact_pdf(data: bytes) -> bytes:
+    """Caviardage PDF : chaque page -> image -> caviardage OCR -> PDF réassemblé (donc rasterisé, PII masquées)."""
+    from pdf2image import convert_from_bytes
+    pages = convert_from_bytes(data, dpi=150)
+    red = [_redact_one(p).convert("RGB") for p in pages]
+    out = io.BytesIO()
+    red[0].save(out, format="PDF", save_all=True, append_images=red[1:])
     return out.getvalue()
