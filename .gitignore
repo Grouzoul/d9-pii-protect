@@ -1,5 +1,7 @@
 venv/
-d9/database/
+scratchpad/
+.env
+deploy/.env
 engine/engine.log
 __pycache__/
 *.pyc

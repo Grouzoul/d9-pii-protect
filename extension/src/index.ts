@@ -4,7 +4,9 @@
  * Rôle marqué « Agent IA » (champ booléen `is_agent` sur le rôle) :
  *   - items.read            : chiffre les PII des champs TEXTE LIBRE (secure-by-default) via le moteur sidecar
  *   - items.create/update   : rehydrate les marqueurs [[PII:...]] avant écriture
- *   - GET /assets/:pk        : documents texte (.txt/.docx…) tokenisés
+ *   - GET /assets/:pk        : SECURE-BY-DEFAULT sur TOUT fichier accessible à l'agent —
+ *                              docs texte (.txt/.docx…) anonymisés, images caviardées (OCR),
+ *                              type non pris en charge = refus fail-closed (rien ne fuit)
  *   - files.upload           : rehydrate un document ré-uploadé par un agent (round-trip)
  *
  * Tout est piloté par VARIABLES D'ENVIRONNEMENT (aucune dépendance à un environnement précis) :
@@ -19,7 +21,9 @@ import { defineHook } from '@directus/extensions-sdk';
 import { Readable } from 'node:stream';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
+// Types de fichiers traités par type de contenu. Hors de ces listes -> refus fail-closed (secure-by-default).
 const TEXT_DOCS = ['txt', 'md', 'csv', 'json', 'docx'];
+const IMAGE_DOCS = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'tif', 'webp'];
 
 // Config des champs : JSON explicite, sinon secure-by-default (tous les champs `text`).
 let FIELDS_MAP: Record<string, string[]> | null = null;
@@ -112,23 +116,25 @@ export default defineHook(({ filter, init, action }, { logger, database, service
         const cdisp = orig.headers.get('content-disposition') || '';
         const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp);
         const name = decodeURIComponent((m && m[1]) || String(req.params.pk));
-        const ext = name.toLowerCase().split('.').pop();
+        const ext = name.toLowerCase().split('.').pop() || '';
         const buf = Buffer.from(await orig.arrayBuffer());
-        if (!TEXT_DOCS.includes(ext!)) {
-          res.setHeader('content-type', ctype);
-          if (cdisp) res.setHeader('content-disposition', cdisp);
-          return res.send(buf); // type non géré -> original (le caviardage image est en roadmap)
+        // Routage par type de contenu. Inconnu (PDF, binaire…) -> refus fail-closed : on ne laisse RIEN fuir.
+        const endpoint = TEXT_DOCS.includes(ext) ? '/anonymize-doc'
+                       : IMAGE_DOCS.includes(ext) ? '/redact-image'
+                       : null;
+        if (!endpoint) {
+          return res.status(415).send('[protégé — type de fichier non pris en charge]'); // secure-by-default
         }
         let out: Buffer;
         try {
-          const r = await fetch(ENGINE + '/anonymize-doc', {
+          const r = await fetch(ENGINE + endpoint, {
             method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ filename: name, content_b64: buf.toString('base64') }),
           });
           if (!r.ok) throw new Error('engine HTTP ' + r.status);
           out = Buffer.from(((await r.json()) as { content_b64: string }).content_b64, 'base64');
         } catch (e: any) {
-          logger.warn('[pii-protect] /assets doc indispo: ' + e.message);
+          logger.warn('[pii-protect] /assets ' + endpoint + ' indispo: ' + e.message);
           return res.status(503).send('[protégé — moteur indisponible]'); // fail-closed
         }
         res.setHeader('content-type', ctype);
