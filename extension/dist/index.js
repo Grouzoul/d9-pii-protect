@@ -8,6 +8,8 @@
 import { Readable } from 'node:stream';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
+// Auto-appel de d9 sur son port interne (env PORT de Directus, défaut 8055). Jamais en dur.
+const SELF = 'http://127.0.0.1:' + (process.env.PORT || '8055');
 const TEXT_DOCS = ['txt', 'md', 'csv', 'json', 'docx'];
 const IMAGE_DOCS = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'tif', 'webp'];
 
@@ -89,7 +91,7 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
         if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next();
         if (!(await isAgentRole(database, req.accountability && req.accountability.role))) return next();
         const sep = req.originalUrl.includes('?') ? '&' : '?';
-        const orig = await fetch('http://127.0.0.1:8055' + req.originalUrl + sep + 'ecluse_bypass=1',
+        const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1',
           { headers: { authorization: req.headers.authorization || '' } });
         if (!orig.ok) return next();
         const ctype = orig.headers.get('content-type') || 'application/octet-stream';

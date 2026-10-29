@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Seed de la démo PII Protect sur le d9 dédié (:8060).
+"""Seed de la démo PII Protect sur le d9 dédié (:8055).
 Collection tickets (champ note = texte libre avec PII FR), rôle agent + user agent,
 champ booléen `is_agent` sur les rôles (le toggle que lit l'extension) activé sur le rôle agent.
 Secure-by-default : aucune config de champ à écrire — l'extension protège tous les champs `text`."""
 import json, urllib.request, urllib.error
 
-BASE = "http://localhost:8060"
+BASE = "http://localhost:8055"
 ADMIN = ("admin@ecluse.io", "ecluse-admin")
 AGENT = ("agent@ecluse.io", "agent-pwd")
 

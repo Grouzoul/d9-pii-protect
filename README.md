@@ -32,9 +32,18 @@ cp .env.example .env            # renseigner au minimum PII_PROTECT_KEY
 docker compose up -d --build    # construit le moteur + lance d9 + mailpit
 ```
 
-- d9 : http://localhost:8060 (admin défini dans `.env`)
+- d9 : http://localhost:8055 (admin défini dans `.env`)
 - Mettre un rôle en mode agent : passer `is_agent = true` sur le rôle (champ booléen sur `directus_roles`).
   → **secure-by-default** : tous les champs `text` et tous les fichiers accessibles à ce rôle sont protégés.
+
+### Voir la démo (optionnel)
+
+```bash
+python3 seed_ecluse.py          # collection tickets + rôle/user agent + toggle is_agent (depuis la racine)
+bash demo.sh                    # texte / document / image / type refusé / round-trip, agent vs humain
+```
+
+Comptes de démo : `admin@ecluse.io` / `ecluse-admin` et `agent@ecluse.io` / `agent-pwd`.
 
 ## Configuration (variables d'environnement)
 
