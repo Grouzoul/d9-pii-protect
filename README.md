@@ -29,7 +29,7 @@ Prérequis : Docker, et l'image `d9-main:latest` disponible localement.
 ```bash
 cd deploy
 cp .env.example .env            # renseigner au minimum PII_PROTECT_KEY
-docker compose up -d --build    # construit le moteur + lance d9 + mailpit
+docker compose up -d --build    # construit le moteur + lance d9
 ```
 
 - d9 : http://localhost:8055 (admin défini dans `.env`)

@@ -7,7 +7,8 @@ Moteur d'anonymisation gouvernée des PII (sidecar) — Presidio FR embarqué.
   chiffrement réversible = AES-256-GCM in-place, marqueurs [[PII:TYPE:b64]] (crypto.py)
 
 Endpoints (JSON) :
-  POST /anonymize      {text}                  -> {text, count, entities}
+  POST /anonymize      {text}                  -> {text, count, entities}   (chiffre les PII détectées)
+  POST /encrypt        {text}                  -> {text, count}             (chiffre la valeur ENTIÈRE, 1 marqueur)
   POST /rehydrate      {text}                  -> {text, count}
   POST /anonymize-doc  {filename, content_b64} -> {filename, content_b64}   (.txt/.md/.csv/.json/.docx)
   POST /rehydrate-doc  {filename, content_b64} -> {filename, content_b64}
@@ -101,6 +102,10 @@ class H(BaseHTTPRequestHandler):
             elif self.path == "/rehydrate":
                 out, c = crypto.rehydrate(body.get("text", ""))
                 self._send(200, {"text": out, "count": c})
+            elif self.path == "/encrypt":
+                # Chiffre la VALEUR ENTIÈRE en un seul marqueur (ex. nom de fichier : on protège tout, pas par PII).
+                t = body.get("text", "")
+                self._send(200, {"text": crypto.marker("TEXT", t) if t else t, "count": 1 if t else 0})
             elif self.path == "/detect":
                 t = body.get("text", "")
                 self._send(200, {"spans": [{"start": s, "end": e, "type": ty, "text": t[s:e]} for s, e, ty in analyzer.detect(t)]})

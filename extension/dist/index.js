@@ -94,7 +94,8 @@ export default ({ filter, init, action }, { logger, database, services, getSchem
       if (!o || typeof o !== 'object') return;
       for (const f of FILE_META_FIELDS) {
         if (typeof o[f] === 'string' && o[f]) {
-          try { o[f] = await call('/anonymize', o[f]); } catch { o[f] = '[protégé — indisponible]'; }
+          // Chiffre le NOM/titre ENTIER (pas besoin du détail côté agent) -> zéro fuite partielle, réversible.
+          try { o[f] = await call('/encrypt', o[f]); } catch { o[f] = '[protégé — indisponible]'; }
         }
       }
     };

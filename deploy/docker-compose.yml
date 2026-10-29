@@ -1,9 +1,9 @@
-# Déploiement de référence : d9 + le moteur d'anonymisation PII (sidecar) + Mailpit (optionnel).
+# Déploiement de référence : d9 + le moteur d'anonymisation PII (sidecar).
 #
-#   - "engine"  = le sidecar auto-suffisant (Presidio FR + NER + chiffrement AES-GCM). UN par environnement.
-#   - "d9"      = Directus 9 (fork) avec l'extension PII Protect montée (hook par rôle).
-#   - "mailpit" = boîte mail de dev pour tester les notifications (phase 2 HITL). Supprimable.
+#   - "engine" = le sidecar auto-suffisant (Presidio FR + NER + chiffrement AES-GCM). UN par environnement.
+#   - "d9"     = Directus 9 (fork) avec l'extension PII Protect montée (hook par rôle).
 #
+# (La validation humaine par email — HITL — est en phase 2 ; pas de serveur mail ici.)
 # Copier .env.example -> .env, renseigner PII_PROTECT_KEY, puis : docker compose up -d --build
 services:
   engine:
@@ -40,20 +40,11 @@ services:
       PII_PROTECT_ENGINE_URL: http://engine:8077
       # Optionnel : restreindre les champs traités (JSON {collection:[champs]}). Vide = secure-by-default = tous les champs 'text'.
       PII_PROTECT_FIELDS: ${PII_PROTECT_FIELDS:-}
-      # Mail (phase 2 HITL) via mailpit :
-      EMAIL_TRANSPORT: smtp
-      EMAIL_SMTP_HOST: mailpit
-      EMAIL_SMTP_PORT: "1025"
     volumes:
       - ../extension:/directus/extensions/directus-extension-pii-protect:ro
       - d9_db:/directus/database
       - d9_uploads:/directus/uploads   # binaires des fichiers : à persister (sinon perdus au recreate)
     extra_hosts: ["host.docker.internal:host-gateway"]
-    restart: unless-stopped
-
-  mailpit:
-    image: axllent/mailpit:latest
-    ports: ["8025:8025"]   # UI web
     restart: unless-stopped
 
 volumes:

@@ -21,12 +21,14 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null; \
     pip install --no-cache-dir opencv-python-headless
 
-COPY app.py analyzer.py crypto.py recognizers.py ner.py image_redact.py ./
-
-# Modèle NER baké dans l'image -> démarrage hors-ligne, pas de téléchargement au runtime.
+# Modèle NER baké dans l'image -> démarrage hors-ligne. AVANT la copie du code source
+# (il ne dépend pas du code) pour que les éditions de .py ne déclenchent pas un re-téléchargement du modèle.
 ARG PII_NER_MODEL=Anonym-IA/V2-camembert-ner-pii-french
 ENV PII_NER_MODEL=${PII_NER_MODEL}
 RUN python -c "from transformers import pipeline; pipeline('token-classification', model='${PII_NER_MODEL}', aggregation_strategy='simple')"
+
+# Code source en dernier : les éditions ne réinvalident que cette couche (rebuild rapide).
+COPY app.py analyzer.py crypto.py recognizers.py ner.py image_redact.py ./
 
 EXPOSE 8077
 # PII_PROTECT_KEY DOIT être fourni au run (secret / KMS). Pas de clé par défaut en prod.

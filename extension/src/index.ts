@@ -118,7 +118,8 @@ export default defineHook(({ filter, init, action }, { logger, database, service
       if (!o || typeof o !== 'object') return;
       for (const f of FILE_META_FIELDS) {
         if (typeof o[f] === 'string' && o[f]) {
-          try { o[f] = await call('/anonymize', o[f]); }
+          // On chiffre le NOM/titre ENTIER (l'agent n'a pas besoin du détail) -> zéro fuite partielle, réversible.
+          try { o[f] = await call('/encrypt', o[f]); }
           catch { o[f] = '[protégé — indisponible]'; } // fail-closed
         }
       }
