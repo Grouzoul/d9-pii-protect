@@ -22,8 +22,7 @@ Config (env) : PII_PROTECT_KEY, PII_NER_MODEL, PII_NER_THRESHOLD, PORT.
 import base64, io, json, os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import crypto
-import analyzer
+import crypto, analyzer, ner, image_redact
 
 PORT = int(os.environ.get("PORT", "8077"))
 
@@ -81,6 +80,41 @@ def process_doc(filename, data, mode):
         return _docx_transform(data, fn)
     return fn(data.decode("utf-8", "replace")).encode("utf-8")
 
+# ---------------------------------------------------------------- routes POST
+# Chaque handler reçoit le body (dict JSON) et renvoie un dict (sérialisé en réponse 200).
+def _file_op(body, fn):
+    """Transforme un fichier base64 -> base64 en conservant le nom."""
+    out = fn(base64.b64decode(body.get("content_b64", "")))
+    return {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()}
+
+def _anonymize(b):
+    out, ents = anonymize(b.get("text", ""))
+    return {"text": out, "count": len(ents), "entities": ents}
+
+def _encrypt(b):
+    # Chiffre la VALEUR ENTIÈRE en un marqueur (ex. nom de fichier : on protège tout, pas par PII).
+    t = b.get("text", "")
+    return {"text": crypto.marker("TEXT", t) if t else t, "count": 1 if t else 0}
+
+def _rehydrate(b):
+    out, c = crypto.rehydrate(b.get("text", ""))
+    return {"text": out, "count": c}
+
+def _detect(b):
+    t = b.get("text", "")
+    return {"spans": [{"start": s, "end": e, "type": ty, "text": t[s:e]} for s, e, ty in analyzer.detect(t)]}
+
+POST_ROUTES = {
+    "/anonymize":     _anonymize,
+    "/encrypt":       _encrypt,
+    "/rehydrate":     _rehydrate,
+    "/detect":        _detect,
+    "/anonymize-doc": lambda b: _file_op(b, lambda d: process_doc(b.get("filename", ""), d, "anonymize")),
+    "/rehydrate-doc": lambda b: _file_op(b, lambda d: process_doc(b.get("filename", ""), d, "rehydrate")),
+    "/redact-image":  lambda b: _file_op(b, image_redact.redact_image),
+    "/redact-pdf":    lambda b: _file_op(b, image_redact.redact_pdf),
+}
+
 # ---------------------------------------------------------------- HTTP
 class H(BaseHTTPRequestHandler):
     def _send(self, code, obj):
@@ -91,35 +125,17 @@ class H(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(b)
     def log_message(self, *a): pass
     def do_GET(self):
-        self._send(200, {"status": "ok", "model": __import__("ner").MODEL}) if self.path == "/health" else self._send(404, {"error": "not found"})
+        if self.path == "/health":
+            self._send(200, {"status": "ok", "model": ner.MODEL})
+        else:
+            self._send(404, {"error": "not found"})
     def do_POST(self):
+        handler = POST_ROUTES.get(self.path)
+        if handler is None:
+            return self._send(404, {"error": "not found"})
         try:
-            n = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(n) or b"{}")
-            if self.path == "/anonymize":
-                out, ents = anonymize(body.get("text", ""))
-                self._send(200, {"text": out, "count": len(ents), "entities": ents})
-            elif self.path == "/rehydrate":
-                out, c = crypto.rehydrate(body.get("text", ""))
-                self._send(200, {"text": out, "count": c})
-            elif self.path == "/encrypt":
-                # Chiffre la VALEUR ENTIÈRE en un seul marqueur (ex. nom de fichier : on protège tout, pas par PII).
-                t = body.get("text", "")
-                self._send(200, {"text": crypto.marker("TEXT", t) if t else t, "count": 1 if t else 0})
-            elif self.path == "/detect":
-                t = body.get("text", "")
-                self._send(200, {"spans": [{"start": s, "end": e, "type": ty, "text": t[s:e]} for s, e, ty in analyzer.detect(t)]})
-            elif self.path in ("/anonymize-doc", "/rehydrate-doc"):
-                mode = "anonymize" if self.path == "/anonymize-doc" else "rehydrate"
-                out = process_doc(body.get("filename", ""), base64.b64decode(body.get("content_b64", "")), mode)
-                self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
-            elif self.path in ("/redact-image", "/redact-pdf"):
-                import image_redact
-                raw = base64.b64decode(body.get("content_b64", ""))
-                out = image_redact.redact_pdf(raw) if self.path == "/redact-pdf" else image_redact.redact_image(raw)
-                self._send(200, {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()})
-            else:
-                self._send(404, {"error": "not found"})
+            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+            self._send(200, handler(body))
         except Exception as ex:
             self._send(500, {"error": str(ex)})
 

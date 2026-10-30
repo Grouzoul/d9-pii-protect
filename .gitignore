@@ -1,5 +1,6 @@
 venv/
 scratchpad/
+node_modules/
 .env
 deploy/.env
 engine/engine.log
