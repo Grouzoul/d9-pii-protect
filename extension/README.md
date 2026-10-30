@@ -31,11 +31,12 @@ Le choix de **quels types de PII** chiffrer (`PII_PROTECT_ENTITIES` / `PII_PROTE
 
 ```bash
 npm install
-npm run build      # directus-extension build → dist/index.js
-npm run dev        # watch
+npm run build      # esbuild : transpile src/index.ts → dist/index.js (lisible, non minifié, sans bundle)
+npm run dev        # idem en watch
 ```
 
-Source : `src/index.ts`. Sortie : `dist/index.js`.
+Source unique : `src/index.ts`. Sortie versionnée : `dist/index.js` (artefact chargé par d9 — un simple
+transpile 1:1, auditable). Le hook n'a **aucune dépendance runtime** (seul `node:stream`, natif).
 
 ## Licence
 
