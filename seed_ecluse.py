@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Seed de la démo PII Protect sur le d9 dédié (:8055).
-Collection tickets (champ note = texte libre avec PII FR), rôle agent + user agent,
-champ booléen `is_agent` sur les rôles (le toggle que lit l'extension) activé sur le rôle agent.
-Secure-by-default : aucune config de champ à écrire — l'extension protège tous les champs `text`."""
+"""Seed the PII Protect demo on the dedicated d9 (:8055).
+Collection tickets (note field = free text with FR PII), agent role + agent user,
+boolean field `is_agent` on roles (the toggle the extension reads) enabled on the agent role.
+Secure-by-default: no field config to write — the extension protects every `text` field.
+(The sample ticket data is kept in French on purpose, to exercise the French PII engine.)"""
 import json, urllib.request, urllib.error
 
 BASE = "http://localhost:8055"
@@ -26,6 +27,7 @@ def api(method, path, token, body=None):
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"{method} {path} -> {e.code}: {e.read().decode()}") from None
 
+# Sample tickets — French on purpose (realistic data for the FR PII engine).
 TICKETS = [
     {"objet": "Remboursement contesté",
      "note": "Le client Jean Dupont (NIR 1 85 05 78 006 084 36) conteste un prélèvement de 149€ sur son IBAN FR7630006000011234567890189. Le rappeler au 06 12 34 56 78."},
@@ -42,39 +44,39 @@ def main():
     if "tickets" not in cols:
         api("POST", "/collections", t, {
             "collection": "tickets", "schema": {},
-            "meta": {"icon": "support_agent", "note": "Tickets support — le champ note contient du texte libre avec des PII."},
+            "meta": {"icon": "support_agent", "note": "Support tickets — the note field holds free text with PII."},
             "fields": [
                 {"field": "id", "type": "integer", "meta": {"hidden": True, "readonly": True},
                  "schema": {"is_primary_key": True, "has_auto_increment": True}},
                 {"field": "objet", "type": "string", "meta": {"interface": "input"}},
                 {"field": "note", "type": "text", "meta": {"interface": "input-multiline",
-                 "note": "Texte libre — peut contenir noms, NIR, IBAN, SIREN… (RBAC champ aveugle ici)."}},
+                 "note": "Free text — may contain names, NIR, IBAN, SIREN… (field-level RBAC is blind here)."}},
                 {"field": "statut", "type": "string", "meta": {"interface": "input"}},
             ],
-        }); print("+ collection tickets")
+        }); print("+ tickets collection")
     else:
-        print("= collection tickets existe")
+        print("= tickets collection exists")
 
-    # Le toggle que lit l'extension : champ booléen `is_agent` sur les rôles (seul ajout UI).
+    # The toggle the extension reads: boolean field `is_agent` on roles (the only UI addition).
     role_fields = {f["field"] for f in api("GET", "/fields/directus_roles", t)["data"]}
     if "is_agent" not in role_fields:
         api("POST", "/fields/directus_roles", t, {
             "field": "is_agent", "type": "boolean",
             "meta": {"interface": "boolean", "special": ["cast-boolean"],
-                     "note": "Filtrer/anonymiser les PII pour ce rôle (agents IA)."},
+                     "note": "Filter/anonymize PII for this role (AI agents)."},
             "schema": {"default_value": False},
-        }); print("+ champ is_agent sur directus_roles")
+        }); print("+ is_agent field on directus_roles")
     else:
-        print("= champ is_agent existe")
+        print("= is_agent field exists")
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
-        role_id = roles["agent"]; print("= rôle agent existe")
+        role_id = roles["agent"]; print("= agent role exists")
     else:
         role_id = api("POST", "/roles", t, {"name": "agent", "admin_access": False,
-            "app_access": True, "description": "Agent IA — lecture tickets (contenu PII anonymisé par PII Protect)."})["data"]["id"]
-        print("+ rôle agent", role_id)
-    # Active le toggle is_agent sur le rôle agent.
+            "app_access": True, "description": "AI agent — reads tickets (PII content anonymized by PII Protect)."})["data"]["id"]
+        print("+ agent role", role_id)
+    # Enable the is_agent toggle on the agent role.
     api("PATCH", f"/roles/{role_id}", t, {"is_agent": True}); print("  is_agent = true")
 
     def perm(collection, action, fields):
@@ -85,28 +87,28 @@ def main():
         print(f"  + perm {collection}:{action}")
     perm("tickets", "read", ["*"])
     perm("tickets", "update", ["note", "statut"])
-    perm("directus_files", "read", ["*"])    # télécharger des documents (/assets)
-    perm("directus_files", "create", ["*"])  # ré-uploader un document (round-trip write)
+    perm("directus_files", "read", ["*"])    # download documents (/assets)
+    perm("directus_files", "create", ["*"])  # re-upload a document (write round-trip)
     perm("directus_files", "update", ["*"])
 
     users = api("GET", f"/users?filter[email][_eq]={AGENT[0]}&fields=id", t)["data"]
     if not users:
         api("POST", "/users", t, {"email": AGENT[0], "password": AGENT[1], "role": role_id,
             "status": "active", "provider": "default", "first_name": "Agent", "last_name": "IA"})
-        print("+ user agent", AGENT[0])
+        print("+ agent user", AGENT[0])
     else:
-        print("= user agent existe")
+        print("= agent user exists")
 
     existing = api("GET", "/items/tickets?limit=1", t)["data"]
     if not existing:
         for rec in TICKETS:
             rec = dict(rec); rec["statut"] = "open"
             api("POST", "/items/tickets", t, rec)
-        print(f"+ {len(TICKETS)} tickets seedés")
+        print(f"+ {len(TICKETS)} tickets seeded")
     else:
-        print("= tickets déjà présents")
+        print("= tickets already present")
 
-    print("\nSeed terminé. Rôle agent =", role_id, "(is_agent actif). Secure-by-default : aucun champ à configurer.")
+    print("\nSeed done. Agent role =", role_id, "(is_agent active). Secure-by-default: no field to configure.")
 
 if __name__ == "__main__":
     main()

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Génère docs/comparator.html — 2 parties interactives :
-  1) Humain vs Agent (vraies détections FR bakées)
-  2) Notre moteur vs Presidio (EN) vs Hoop/Alcatraz (détections réelles des 3)."""
+"""Generate docs/comparator.html — 2 interactive parts:
+  1) Human vs Agent (real baked FR detections)
+  2) Our engine vs Presidio (EN) vs Hoop/Alcatraz (real detections from all 3).
+Dev/benchmark tool: expects the engines running locally (see URLs below)."""
 import json, os, urllib.request
 
 OURS = "http://localhost:8077/detect"

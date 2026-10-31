@@ -1,12 +1,12 @@
-"""Chiffrement réversible des PII — AES-256-GCM, marqueurs auto-porteurs [[PII:TYPE:b64]].
+"""Reversible PII encryption — AES-256-GCM, self-describing markers [[PII:TYPE:b64]].
 
-La sécurité repose sur la CUSTODY DE LA CLÉ (PII_PROTECT_KEY), pas sur l'obscurité.
-Nonce aléatoire par valeur -> pas de fuite d'égalité ; pas de déchiffrement sans la clé.
+Security rests on KEY CUSTODY (PII_PROTECT_KEY), not on obscurity.
+Random nonce per value -> no equality leak; no decryption without the key.
 """
 import base64, os, re
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-# ===== CLÉ : en prod, injecter via secret / KMS. Pas de valeur par défaut en production. =====
+# ===== KEY: in production, inject via a secret manager / KMS. No default value in production. =====
 _KEY = (os.environ.get("PII_PROTECT_KEY") or "demo-key-change-me-0123456789abc").encode()[:32].ljust(32, b"0")
 _aes = AESGCM(_KEY)
 
@@ -24,7 +24,7 @@ def marker(entity: str, plain: str) -> str:
     return f"[[PII:{entity}:{encrypt(plain)}]]"
 
 def rehydrate(text: str):
-    """Remplace chaque marqueur par sa valeur déchiffrée. Retourne (texte, nb)."""
+    """Replace each marker with its decrypted value. Returns (text, count)."""
     n = 0
     def repl(m):
         nonlocal n

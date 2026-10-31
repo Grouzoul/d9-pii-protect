@@ -1,84 +1,83 @@
 # Architecture — d9 PII Protect
 
-Deux briques, découplées par une variable d'environnement. **Un moteur par environnement**
-(dev / staging / prod) : pas de proxy central, les PII ne sortent jamais de leur environnement
-(principe de confinement).
+Two bricks, decoupled by an environment variable. **One engine per environment** (dev / staging /
+prod): no central proxy, PII never leaves its environment (confinement principle).
 
 ```
-                        ENVIRONNEMENT (dev / staging / prod)
+                        ENVIRONMENT (dev / staging / prod)
   ┌──────────────────────────────────────────────────────────────────────────┐
   │                                                                            │
-  │   Agent IA / API ─────────┐                                                │
-  │   (rôle "is_agent")        │  lit/écrit des items & fichiers               │
+  │   AI agent / API ─────────┐                                                │
+  │   (role "is_agent")        │  reads/writes items & files                   │
   │                            ▼                                                │
   │                    ┌───────────────┐   PII_PROTECT_ENGINE_URL   ┌────────┐ │
-  │   Humain ─────────▶│      d9       │ ─────────────────────────▶ │ MOTEUR │ │
-  │   (voit en clair)  │  (Directus 9) │ ◀───────────────────────── │(sidecar)│ │
-  │                    │  + extension  │     texte <-> marqueurs     └────────┘ │
+  │   Human ──────────▶│      d9       │ ─────────────────────────▶ │ ENGINE │ │
+  │   (sees clear)     │  (Directus 9) │ ◀───────────────────────── │(sidecar)│ │
+  │                    │  + extension  │     text <-> markers         └────────┘ │
   │                    │  PII Protect  │                             Presidio FR │
-  │                    └───────┬───────┘                             + NER FR    │
+  │                    └───────┬───────┘                             + FR NER    │
   │                            │                                     + regex     │
   │                            ▼                                     + AES-GCM    │
-  │                      Base de données                             (clé = env)  │
-  │                      (PII EN CLAIR, protégée par le RBAC)                     │
+  │                        Database                                  (key = env)  │
+  │                   (PII IN CLEAR, protected by RBAC)                           │
   └──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ```mermaid
 flowchart LR
-    agent["Agent IA / API<br/>(rôle is_agent)"]
-    human["Humain<br/>(autorisé)"]
-    d9["d9 (Directus 9)<br/>+ extension PII Protect<br/>(hook par rôle)"]
-    db[("Base de données<br/>PII en clair")]
-    engine["MOTEUR sidecar<br/>Presidio FR + NER + regex<br/>+ chiffrement AES-GCM"]
+    agent["AI agent / API<br/>(is_agent role)"]
+    human["Human<br/>(authorized)"]
+    d9["d9 (Directus 9)<br/>+ PII Protect extension<br/>(per-role hook)"]
+    db[("Database<br/>PII in clear")]
+    engine["ENGINE sidecar<br/>Presidio FR + NER + regex<br/>+ AES-GCM encryption"]
 
-    human -->|lit/écrit| d9
-    agent -->|lit/écrit| d9
+    human -->|reads/writes| d9
+    agent -->|reads/writes| d9
     d9 <-->|PII_PROTECT_ENGINE_URL| engine
     d9 --> db
-    engine -. "clé AES = PII_PROTECT_KEY<br/>(secret / KMS)" .- engine
+    engine -. "AES key = PII_PROTECT_KEY<br/>(secret / KMS)" .- engine
 ```
 
-## Qui fait quoi
+## Who does what
 
-| Brique | Rôle | Techno | Contenu du repo |
+| Brick | Role | Tech | Repo contents |
 |---|---|---|---|
-| **Moteur** (`engine/`) | Détecte les PII dans un texte et les chiffre/déchiffre. Réutilisable par n'importe quel service, pas seulement d9. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + NER FR [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + recognizers regex/checksum + AES-256-GCM maison | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `MODELS.md` |
-| **Extension** (`extension/`) | Intègre le moteur dans d9 en un hook. Anonymise à la lecture pour les rôles « agent », réhydrate à l'écriture, et pour les humains autorisés. | TypeScript (hook Directus) | `src/index.ts`, `dist/index.js` |
-| **Déploiement** (`deploy/`) | Stack de référence qui câble les deux. | docker-compose | `docker-compose.yml`, `.env.example` |
+| **Engine** (`engine/`) | Detects PII in a text and encrypts/decrypts it. Reusable by any service, not just d9. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + regex/checksum recognizers + our own AES-256-GCM | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `image_redact.py`, `MODELS.md` |
+| **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for "agent" roles, rehydrates on write, and for authorized humans. | TypeScript (Directus hook) | `src/index.ts`, `dist/index.js` |
+| **Deploy** (`deploy/`) | Reference stack wiring the two together. | docker-compose | `docker-compose.yml`, `.env.example` |
 
-## Le flux, pas à pas
+## The flow, step by step
 
-1. Un **agent** (rôle avec `is_agent = true`) lit un item. Le hook d9 appelle `POST /anonymize`
-   sur le moteur pour chaque champ libre concerné.
-2. Le moteur **détecte** les PII (NER FR + regex + scoring contextuel Presidio) et remplace
-   chaque valeur par un marqueur chiffré `[[PII:TYPE:base64(nonce+ciphertext)]]`.
-   → l'agent ne voit **jamais** la donnée en clair ; un nonce aléatoire par valeur empêche toute
-   fuite d'égalité ou attaque par force brute sans la clé.
-3. L'agent **écrit** (create/update) un texte contenant des marqueurs. Le hook appelle
-   `POST /rehydrate` : le moteur **déchiffre** et restaure le clair avant stockage.
-4. Un **humain autorisé** lit normalement : pas d'anonymisation (le RBAC d9 décide qui est autorisé).
-5. **Fail-closed** : si le moteur est injoignable, l'agent reçoit `[protégé — indisponible]`
-   plutôt que la donnée en clair.
+1. An **agent** (role with `is_agent = true`) reads an item. The d9 hook calls `POST /anonymize`
+   on the engine for each relevant free-text field.
+2. The engine **detects** PII (FR NER + regex + Presidio context scoring) and replaces each value
+   with an encrypted marker `[[PII:TYPE:base64(nonce+ciphertext)]]`.
+   → the agent **never** sees the clear value; a random nonce per value prevents any equality leak
+   or brute-force without the key.
+3. The agent **writes** (create/update) a text containing markers. The hook calls `POST /rehydrate`:
+   the engine **decrypts** and restores the clear value before storage.
+4. An **authorized human** reads normally: no anonymization (d9 RBAC decides who is authorized).
+5. **Fail-closed**: if the engine is unreachable, the agent gets `[protected — unavailable]` rather
+   than the clear value.
 
-## Décisions de conception
+## Design decisions
 
-- **Secure-by-default** : sans configuration, tous les champs de type `text` sont protégés pour les
-  rôles agent. Le RBAC couvre déjà les champs structurés ; nous couvrons les **champs libres**,
-  là où une PII imprévue peut se glisser. On peut ensuite restreindre par champ
-  (`PII_PROTECT_FIELDS`) et par type de PII (`PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`).
-- **Chiffrement réversible, pas masquage** : on ré-identifie pour les humains autorisés.
-  La custody de la clé (`PII_PROTECT_KEY`) **est** la frontière de sécurité.
-- **Presidio embarqué, pas from scratch** : on réutilise son registry de recognizers et son
-  scoring contextuel (qui désambiguïse p. ex. SIREN vs NIR), et on garde **notre** chiffrement
-  (le `hash` de Presidio, non salé, est insuffisant).
-- **Un moteur par environnement** : confinement. Pas de proxy central par lequel transiteraient
-  les données de tous les environnements.
-- **Pas de logs custom** : l'activité est déjà tracée par l'**audit d9** natif.
+- **Secure-by-default**: without configuration, all `text`-type fields are protected for agent roles.
+  RBAC already covers structured fields; we cover the **free-text fields**, where unexpected PII can
+  slip in. You can then restrict by field (`PII_PROTECT_FIELDS`) and by PII type
+  (`PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`).
+- **Reversible encryption, not masking**: we re-identify for authorized humans. Key custody
+  (`PII_PROTECT_KEY`) **is** the security boundary.
+- **Embedded Presidio, not from scratch**: we reuse its recognizer registry and context scoring
+  (which disambiguates e.g. SIREN vs NIR), and keep **our own** encryption (Presidio's unsalted
+  `hash` is insufficient).
+- **One engine per environment**: confinement. No central proxy through which every environment's
+  data would transit.
+- **No custom logs**: activity is already tracked by d9's native **audit**.
 
-## Points personnalisables (flaggés dans le code)
+## Customizable points (flagged in the code)
 
-- Ajouter une **regex** / un recognizer → `engine/recognizers.py` (bloc « AJOUTER UN RECOGNIZER »).
-- Changer le **modèle NER** (autre langue, autre modèle) → env `PII_NER_MODEL`, voir `engine/MODELS.md`.
-- Choisir **quels types** sont chiffrés → `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
-- Choisir **quels champs** sont traités → `PII_PROTECT_FIELDS`.
+- Add a **regex** / recognizer → `engine/recognizers.py` ("ADD A REGEX RECOGNIZER" block).
+- Change the **NER model** (other language, other model) → env `PII_NER_MODEL`, see `engine/MODELS.md`.
+- Choose **which types** are encrypted → `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
+- Choose **which fields** are processed → `PII_PROTECT_FIELDS`.

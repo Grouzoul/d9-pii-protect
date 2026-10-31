@@ -67,7 +67,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
           item[f] = await callText("/anonymize", item[f]);
         } catch (e) {
           logger.warn("[pii-protect] anonymize: " + e.message);
-          item[f] = "[prot\xE9g\xE9 \u2014 indisponible]";
+          item[f] = "[protected \u2014 unavailable]";
         }
       }
     }
@@ -108,8 +108,8 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
         deny(res, 503);
       }
     };
-    const denyText = (res, code) => res.status(code).send("[prot\xE9g\xE9]");
-    const denyJson = (res, code) => res.status(code).json({ errors: [{ message: "prot\xE9g\xE9" }] });
+    const denyText = (res, code) => res.status(code).send("[protected]");
+    const denyJson = (res, code) => res.status(code).json({ errors: [{ message: "protected" }] });
     app.get(["/files", "/files/:pk"], guard(denyJson, async (orig, _req, res) => {
       const json = await orig.json();
       const rows = Array.isArray(json?.data) ? json.data : [json?.data];
@@ -122,7 +122,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
       const cdisp = orig.headers.get("content-disposition") || "";
       const name = decodeURIComponent(/filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp)?.[1] || String(req.params.pk));
       const endpoint = FILE_ROUTE[ext(name)];
-      if (!endpoint) return res.status(415).send("[prot\xE9g\xE9 \u2014 type non pris en charge]");
+      if (!endpoint) return res.status(415).send("[protected \u2014 unsupported file type]");
       const out = await callFile(endpoint, name, Buffer.from(await orig.arrayBuffer()));
       res.setHeader("content-type", orig.headers.get("content-type") || "application/octet-stream");
       if (cdisp) res.setHeader("content-disposition", cdisp);
@@ -149,12 +149,12 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
         { type: file.type, filename_download: file.filename_download, storage: file.storage, title: file.title },
         key
       );
-      logger.info("[pii-protect] document rehydrat\xE9 au r\xE9-upload (" + name + ")");
+      logger.info("[pii-protect] document rehydrated on re-upload (" + name + ")");
     } catch (e) {
       logger.warn("[pii-protect] files.upload: " + e.message);
     }
   });
-  logger.info("[pii-protect] charg\xE9 (moteur " + ENGINE + ")");
+  logger.info("[pii-protect] loaded (engine " + ENGINE + ")");
 };
 export {
   index_default as default

@@ -1,83 +1,83 @@
 # d9 PII Protect
 
-**Anonymisation gouvernée des PII pour les agents IA, dans [d9](https://github.com/LaWebcapsule/d9) (fork Directus 9).**
+**Governed PII anonymization for AI agents, inside [d9](https://github.com/LaWebcapsule/d9) (a Directus 9 fork).**
 
-Le RBAC décide *qui accède à quoi*. PII Protect couvre l'angle mort : le **contenu PII des champs
-libres et des fichiers** — un NIR tapé dans une `note`, un nom dans un `.docx`, une pièce d'identité
-scannée. Pour un utilisateur de **rôle « agent »**, les PII sont **détectées (moteur FR) puis
-chiffrées de façon réversible** (texte/documents) ou **caviardées** (images) ; un **humain autorisé**
-voit l'original. La ré-identification est décidée par le RBAC d9 + la custody de la clé.
+RBAC decides *who accesses what*. PII Protect covers the blind spot: the **PII content of free-text
+fields and files** — a NIR typed into a `note`, a name inside a `.docx`, a scanned ID document. For a
+user with an **"agent" role**, PII is **detected (FR engine) and reversibly encrypted** (text/documents)
+or **redacted** (images); an **authorized human** sees the original. Re-identification is decided by
+d9 RBAC + key custody.
 
-> Mesuré sur un corpus FR : **détection 46/46** (identifiants FR NIR/SIREN/SIRET inclus), là où
-> hoop.dev/Alcatraz fait 16/46 et hoop.dev/Presidio-EN ~0 sur les identifiants français.
+> Measured on a FR corpus: **46/46 detection** (incl. FR identifiers NIR/SIREN/SIRET), where
+> hoop.dev/Alcatraz scores 16/46 and hoop.dev/Presidio-EN ~0 on French identifiers.
 
-## Architecture en deux briques
+## Two-brick architecture
 
-- **`engine/`** — un **sidecar Docker auto-suffisant** : [Presidio](https://microsoft.github.io/presidio/)
-  (orchestration) + NER FR [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french)
-  + recognizers regex/checksum (SIREN, SIRET, IBAN, NIR…) + chiffrement **AES-256-GCM** maison + caviardage
-  d'images (Tesseract OCR). **Un moteur par environnement** (confinement — pas de proxy central).
-- **`extension/`** — l'**intégration 1-clic dans d9** : un hook par rôle + un seul ajout UI (le toggle
-  `is_agent` sur la définition du rôle). Entièrement **piloté par variables d'environnement**.
+- **`engine/`** — a **self-contained Docker sidecar**: [Presidio](https://microsoft.github.io/presidio/)
+  (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french)
+  + regex/checksum recognizers (SIREN, SIRET, IBAN, NIR…) + our own **AES-256-GCM** encryption + image
+  redaction (Tesseract OCR). **One engine per environment** (confinement — no central proxy).
+- **`extension/`** — the **one-click integration into d9**: a per-role hook + a single UI addition (the
+  `is_agent` toggle on the role definition). Fully **environment-driven**.
 
-Détail et schéma : **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+Details and diagram: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
-## Démarrage rapide
+## Quick start
 
-Prérequis : Docker, et l'image `d9-main:latest` disponible localement.
+Prerequisites: Docker, and the `d9-main:latest` image available locally.
 
 ```bash
 cd deploy
-cp .env.example .env            # renseigner au minimum PII_PROTECT_KEY
-docker compose up -d --build    # construit le moteur + lance d9
+cp .env.example .env            # set at least PII_PROTECT_KEY
+docker compose up -d --build    # builds the engine + starts d9
 ```
 
-- d9 : http://localhost:8055 (admin défini dans `.env`)
-- Mettre un rôle en mode agent : passer `is_agent = true` sur le rôle (champ booléen sur `directus_roles`).
-  → **secure-by-default** : tous les champs `text` et tous les fichiers accessibles à ce rôle sont protégés.
+- d9: http://localhost:8055 (admin defined in `.env`)
+- Put a role in agent mode: set `is_agent = true` on the role (boolean field on `directus_roles`).
+  → **secure-by-default**: every `text` field and every file accessible to that role is protected.
 
-### Voir la démo (optionnel)
+### See the demo (optional)
 
 ```bash
-python3 seed_ecluse.py          # collection tickets + rôle/user agent + toggle is_agent (depuis la racine)
-bash demo.sh                    # texte / document / image / type refusé / round-trip, agent vs humain
+python3 seed_ecluse.py          # tickets collection + agent role/user + is_agent toggle (from the repo root)
+bash demo.sh                    # text / document / image / refused type / round-trip, agent vs human
 ```
 
-Comptes de démo : `admin@example.com` / `ecluse-admin` et `agent@example.com` / `agent-pwd`.
+Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `agent-pwd`.
 
-## Configuration (variables d'environnement)
+## Configuration (environment variables)
 
-| Variable | Brique | Rôle | Défaut |
+| Variable | Brick | Role | Default |
 |---|---|---|---|
-| `PII_PROTECT_KEY` | moteur | **Clé AES-256** (secret/KMS en prod). La custody = la frontière de sécurité. | — (obligatoire) |
-| `PII_PROTECT_ENGINE_URL` | extension | URL du moteur sidecar. | `http://engine:8077` |
-| `PII_PROTECT_FIELDS` | extension | JSON `{collection:[champs]}` pour restreindre. Vide = **tous les champs `text`**. | *(vide)* |
-| `PII_PROTECT_ENTITIES` | moteur | Allow-list : seuls ces types de PII sont chiffrés. | *(vide = tous)* |
-| `PII_PROTECT_SKIP` | moteur | Deny-list : ces types restent en clair. | *(vide)* |
-| `PII_NER_MODEL` | moteur | Modèle NER HuggingFace (voir [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
-| `PII_NER_THRESHOLD` | moteur | Seuil de confiance du NER. | `0.4` |
-| `PII_OCR_LANG` | moteur | Langue Tesseract pour le caviardage d'images. | `fra` |
+| `PII_PROTECT_KEY` | engine | **AES-256 key** (secret/KMS in prod). Custody = the security boundary. | — (required) |
+| `PII_PROTECT_ENGINE_URL` | extension | URL of the sidecar engine. | `http://engine:8077` |
+| `PII_PROTECT_FIELDS` | extension | JSON `{collection:[fields]}` to restrict. Empty = **all `text` fields**. | *(empty)* |
+| `PII_PROTECT_ENTITIES` | engine | Allow-list: only these PII types are encrypted. | *(empty = all)* |
+| `PII_PROTECT_SKIP` | engine | Deny-list: these types stay in clear. | *(empty)* |
+| `PII_NER_MODEL` | engine | Hugging Face NER model (see [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
+| `PII_NER_THRESHOLD` | engine | NER confidence threshold. | `0.4` |
+| `PII_OCR_LANG` | engine | Tesseract language for image redaction. | `fra` |
 
-**Secure-by-default** : sans configuration, tout ce qui est accessible à un rôle agent est protégé
-(champs texte, documents, images). On restreint *ensuite*, pas l'inverse.
+**Secure-by-default**: with no configuration, everything accessible to an agent role is protected
+(text fields, documents, images). You restrict *afterwards*, not the other way around.
 
-## Personnalisation (points flaggés dans le code)
+## Customization (points flagged in the code)
 
-- Ajouter une **regex / recognizer** → `engine/recognizers.py` (bloc « AJOUTER UN RECOGNIZER »).
-- Changer le **modèle NER** (langue, modèle) → `PII_NER_MODEL` + `engine/MODELS.md`.
-- Choisir **quels types** sont chiffrés → `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
-- Choisir **quels champs** sont traités → `PII_PROTECT_FIELDS`.
+- Add a **regex / recognizer** → `engine/recognizers.py` (the "ADD A REGEX RECOGNIZER" block).
+- Change the **NER model** (language, model) → `PII_NER_MODEL` + `engine/MODELS.md`.
+- Choose **which types** are encrypted → `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
+- Choose **which fields** are processed → `PII_PROTECT_FIELDS`.
 
 ## Roadmap
 
-- [ ] **Validation humaine (HITL)** — workflow d'approbation pour la ré-identification (phase 2, possiblement payant).
-- [ ] **Rotation de clé** + fenêtre de validité des jetons ; custody via KMS/HSM.
-- [ ] **PDF** (texte et scanné) — aujourd'hui refusé fail-closed faute de pipeline OCR PDF.
-- [ ] **Mode déterministe** optionnel (même entrée → même jeton) pour corrélation inter-appels.
-- [ ] **Canaux de notification** (Slack/Teams) pour les demandes de ré-identification.
-- [ ] **Sidecar standalone** documenté (réutilisation hors d9).
-- [ ] Enrichir les recognizers + affiner le NER (par langue).
+- [ ] **Human-in-the-loop (HITL)** — approval workflow for re-identification (phase 2, possibly paid).
+- [ ] **Key rotation** + token validity window; custody via KMS/HSM.
+- [ ] **PDF** (text and scanned) — currently redacted page-by-page; a text-layer path could be added.
+- [ ] **Optional deterministic mode** (same input → same token) for cross-call correlation.
+- [ ] **Notification channels** (Slack/Teams) for re-identification requests.
+- [ ] **Standalone sidecar** documented (reuse outside d9).
+- [ ] Richer recognizers + NER refinement (per language).
 
-## Licence
+## License
 
-MIT — voir [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

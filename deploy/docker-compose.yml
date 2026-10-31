@@ -1,25 +1,25 @@
-# Déploiement de référence : d9 + le moteur d'anonymisation PII (sidecar).
+# Reference deployment: d9 + the PII anonymization engine (sidecar).
 #
-#   - "engine" = le sidecar auto-suffisant (Presidio FR + NER + chiffrement AES-GCM). UN par environnement.
-#   - "d9"     = Directus 9 (fork) avec l'extension PII Protect montée (hook par rôle).
+#   - "engine" = the self-contained sidecar (Presidio FR + NER + AES-GCM encryption). ONE per environment.
+#   - "d9"     = Directus 9 (fork) with the PII Protect extension mounted (per-role hook).
 #
-# (La validation humaine par email — HITL — est en phase 2 ; pas de serveur mail ici.)
-# Copier .env.example -> .env, renseigner PII_PROTECT_KEY, puis : docker compose up -d --build
+# (Human-in-the-loop email approval — HITL — is phase 2; no mail server here.)
+# Copy .env.example -> .env, set PII_PROTECT_KEY, then: docker compose up -d --build
 services:
   engine:
     build:
       context: ../engine
-      # Pour swapper le modèle NER au build : args: { PII_NER_MODEL: "<hf/model>" } (voir engine/MODELS.md)
+      # To swap the NER model at build time: args: { PII_NER_MODEL: "<hf/model>" } (see engine/MODELS.md)
     image: ecluse-engine:latest
     environment:
-      # ===== SÉCURITÉ : clé de chiffrement. En prod, injecter via secret/KMS. =====
-      PII_PROTECT_KEY: ${PII_PROTECT_KEY:?Définir PII_PROTECT_KEY dans .env}
-      # Choisir ce qui est chiffré PAR TYPE (vide = tout ; voir engine/app.py) :
-      PII_PROTECT_ENTITIES: ${PII_PROTECT_ENTITIES:-}   # allow-list (seuls ces types), vide = pas de restriction
-      PII_PROTECT_SKIP: ${PII_PROTECT_SKIP:-}           # deny-list (ces types restent en clair)
+      # ===== SECURITY: encryption key. In production, inject via a secret manager/KMS. =====
+      PII_PROTECT_KEY: ${PII_PROTECT_KEY:?Set PII_PROTECT_KEY in .env}
+      # Choose what gets encrypted BY TYPE (empty = everything; see engine/app.py):
+      PII_PROTECT_ENTITIES: ${PII_PROTECT_ENTITIES:-}   # allow-list (only these types), empty = no restriction
+      PII_PROTECT_SKIP: ${PII_PROTECT_SKIP:-}           # deny-list (these types stay in clear)
       PII_NER_MODEL: ${PII_NER_MODEL:-Anonym-IA/V2-camembert-ner-pii-french}
       PII_NER_THRESHOLD: ${PII_NER_THRESHOLD:-0.4}
-    # Non exposé publiquement : seul d9 (réseau interne) parle au moteur. Décommenter pour debug local.
+    # Not publicly exposed: only d9 (internal network) talks to the engine. Uncomment for local debug.
     # ports: ["8077:8077"]
     restart: unless-stopped
 
@@ -36,14 +36,14 @@ services:
       DB_FILENAME: /directus/database/data.db
       EXTENSIONS_PATH: /directus/extensions
       CACHE_ENABLED: "false"
-      # ===== L'extension lit SON moteur ici. Aucun couplage d'environnement en dur. =====
+      # ===== The extension reads ITS engine here. No hardcoded environment coupling. =====
       PII_PROTECT_ENGINE_URL: http://engine:8077
-      # Optionnel : restreindre les champs traités (JSON {collection:[champs]}). Vide = secure-by-default = tous les champs 'text'.
+      # Optional: restrict processed fields (JSON {collection:[fields]}). Empty = secure-by-default = all 'text' fields.
       PII_PROTECT_FIELDS: ${PII_PROTECT_FIELDS:-}
     volumes:
       - ../extension:/directus/extensions/directus-extension-pii-protect:ro
       - d9_db:/directus/database
-      - d9_uploads:/directus/uploads   # binaires des fichiers : à persister (sinon perdus au recreate)
+      - d9_uploads:/directus/uploads   # file binaries: must be persisted (otherwise lost on recreate)
     extra_hosts: ["host.docker.internal:host-gateway"]
     restart: unless-stopped
 

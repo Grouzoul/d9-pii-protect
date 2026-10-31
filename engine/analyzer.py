@@ -1,7 +1,7 @@
-"""Orchestration Presidio (FR) : tokenizer spaCy blank + NER (Anonym-IA) + recognizers regex.
+"""Presidio orchestration (FR): blank spaCy tokenizer + NER (Anonym-IA) + regex recognizers.
 
-On réutilise Presidio pour ce qu'il fait de mieux (registry de recognizers, scoring contextuel,
-résolution des recognizers) et on garde NOTRE chiffrement (crypto.py) pour l'anonymisation.
+We reuse Presidio for what it does best (recognizer registry, context scoring, recognizer
+resolution) and keep OUR OWN encryption (crypto.py) for the anonymization step.
 """
 import spacy
 from presidio_analyzer import AnalyzerEngine
@@ -11,8 +11,8 @@ import recognizers
 import ner
 
 class _BlankFR(SpacyNlpEngine):
-    """Tokenizer spaCy FR vide — Presidio a besoin d'un NLP engine, mais le NER
-    vient d'Anonym-IA : pas besoin du gros modèle anglais."""
+    """Empty French spaCy tokenizer — Presidio needs an NLP engine, but the NER comes
+    from Anonym-IA, so we don't need the heavy English model."""
     def __init__(self):
         super().__init__()
         self.nlp = {"fr": spacy.blank("fr")}
@@ -32,12 +32,12 @@ def warmup():
     engine()
 
 def detect(text):
-    """Retourne [(start, end, ENTITÉ)] — dédoublonné par score (le plus haut gagne sur chevauchement)."""
+    """Return [(start, end, ENTITY)] — deduplicated by score (highest wins on overlap)."""
     results = engine().analyze(text=text, language="fr")
     results = sorted(results, key=lambda r: (-r.score, -(r.end - r.start)))
     kept = []
     for r in results:
-        if any(r.start < k.end and k.start < r.end for k in kept):  # chevauche un span déjà gardé
+        if any(r.start < k.end and k.start < r.end for k in kept):  # overlaps an already-kept span
             continue
         kept.append(r)
     kept.sort(key=lambda r: r.start)

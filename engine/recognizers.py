@@ -1,10 +1,10 @@
-"""Recognizers REGEX pour Presidio (PatternRecognizer + validation checksum).
+"""Regex recognizers for Presidio (PatternRecognizer + checksum validation).
 
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  AJOUTER UN RECOGNIZER REGEX ICI                                          ║
-║  • sans checksum : ajoute une ligne à SIMPLE  (ENTITÉ, regex, score, contexte)║
-║  • avec checksum : ajoute un _Checksum(...)  dans build_recognizers()       ║
-║  Le « contexte » = mots qui, s'ils sont proches, montent le score (Presidio).║
+║  ADD A REGEX RECOGNIZER HERE                                               ║
+║  • without checksum: add a line to SIMPLE  (ENTITY, regex, score, context) ║
+║  • with checksum:    add a _Checksum(...)  in build_recognizers()          ║
+║  The "context" = words that raise the score when nearby (Presidio feature).║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 import re
@@ -33,12 +33,13 @@ def iban_ok(s: str) -> bool:
 
 def _ndig(s): return sum(c.isdigit() for c in s)
 
+# French month names, used to match textual dates (matching data, not translatable).
 _MOIS = "janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre"
 
-# --- Recognizers SANS checksum : (ENTITÉ, regex, score, [mots de contexte]) ---
-# NB : on réutilise le VOCABULAIRE DE TYPES du modèle NER (voir ner.py LABELS) pour qu'il n'y ait
-# qu'UNE liste de types à connaître (ex. PII_PROTECT_SKIP=DATE couvre toutes les dates). Si tu
-# changes de modèle NER, aligne ces noms sur son jeu d'entités.
+# --- Recognizers WITHOUT checksum: (ENTITY, regex, score, [context words]) ---
+# We reuse the TYPE VOCABULARY of the NER model (see ner.py LABELS) so there is a SINGLE list of
+# types to know about (e.g. PII_PROTECT_SKIP=DATE covers every date). Align these names on the
+# model's entity set if you switch NER models. Context words are matched in French text (kept as-is).
 SIMPLE = [
     ("EMAIL",     r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", 0.9, ["email", "mail", "contact"]),
     ("TELEPHONE", r"(?:\+33|0)[\s.]?\d(?:[\s.]?\d\d){4}", 0.6, ["tel", "téléphone", "appeler", "joindre", "portable"]),
@@ -60,7 +61,7 @@ def build_recognizers():
     recs = [PatternRecognizer(supported_entity=e, supported_language=LANG,
                               patterns=[Pattern(e.lower(), rx, sc)], context=ctx or None)
             for (e, rx, sc, ctx) in SIMPLE]
-    # --- Recognizers AVEC checksum ---
+    # --- Recognizers WITH checksum ---
     recs += [
         _Checksum("SIREN", r"\b\d{3} ?\d{3} ?\d{3}\b", 0.3, ["siren", "société", "entreprise", "immatricul"],
                   lambda t: _ndig(t) == 9 and luhn(t)),

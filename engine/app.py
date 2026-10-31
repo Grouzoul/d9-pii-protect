@@ -1,23 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Moteur d'anonymisation gouvernée des PII (sidecar) — Presidio FR embarqué.
+Governed PII anonymization engine (sidecar) — embedded French Presidio.
 
-  détection = Presidio (analyzer.py) : NER FR Anonym-IA + recognizers regex/checksum + scoring contextuel
-  chiffrement réversible = AES-256-GCM in-place, marqueurs [[PII:TYPE:b64]] (crypto.py)
+  detection = Presidio (analyzer.py): FR NER Anonym-IA + regex/checksum recognizers + context scoring
+  reversible encryption = AES-256-GCM in-place, markers [[PII:TYPE:b64]] (crypto.py)
 
-Endpoints (JSON) :
-  POST /anonymize      {text}                  -> {text, count, entities}   (chiffre les PII détectées)
-  POST /encrypt        {text}                  -> {text, count}             (chiffre la valeur ENTIÈRE, 1 marqueur)
+Endpoints (JSON):
+  POST /anonymize      {text}                  -> {text, count, entities}   (encrypt detected PII)
+  POST /encrypt        {text}                  -> {text, count}             (encrypt the WHOLE value, 1 marker)
   POST /rehydrate      {text}                  -> {text, count}
   POST /anonymize-doc  {filename, content_b64} -> {filename, content_b64}   (.txt/.md/.csv/.json/.docx)
   POST /rehydrate-doc  {filename, content_b64} -> {filename, content_b64}
-  POST /redact-image   {filename, content_b64} -> {filename, content_b64}   (caviardage OCR, destructif)
-  POST /redact-pdf     {filename, content_b64} -> {filename, content_b64}   (PDF -> pages caviardées, destructif)
+  POST /redact-image   {filename, content_b64} -> {filename, content_b64}   (OCR redaction, destructive)
+  POST /redact-pdf     {filename, content_b64} -> {filename, content_b64}   (PDF -> redacted pages, destructive)
   POST /detect         {text}                  -> {spans:[{start,end,type,text}]}
   GET  /health
 
-Config (env) : PII_PROTECT_KEY, PII_NER_MODEL, PII_NER_THRESHOLD, PORT.
+Config (env): PII_PROTECT_KEY, PII_NER_MODEL, PII_NER_THRESHOLD, PORT.
 """
 import base64, io, json, os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,17 +27,17 @@ import crypto, analyzer, ner, image_redact
 PORT = int(os.environ.get("PORT", "8077"))
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
-# ║  CHOISIR CE QUI EST CHIFFRÉ (par TYPE de PII)                              ║
-# ║  Par défaut : tout ce qui est détecté est chiffré (secure-by-default).     ║
+# ║  CHOOSE WHAT GETS ENCRYPTED (by PII TYPE)                                  ║
+# ║  Default: everything detected is encrypted (secure-by-default).            ║
 # ║    PII_PROTECT_ENTITIES = "NOM_PERSONNE,PRENOM_PERSONNE,NUM_SECURITE..."    ║
-# ║        -> allow-list : SEULS ces types sont chiffrés (le reste reste clair) ║
+# ║        -> allow-list: ONLY these types are encrypted (the rest stays clear) ║
 # ║    PII_PROTECT_SKIP = "VILLE,DATE,CODE_POSTAL"                              ║
-# ║        -> deny-list : ces types restent en clair (tout le reste chiffré)    ║
-# ║  (le filtrage par CHAMP se fait côté extension via PII_PROTECT_FIELDS)      ║
+# ║        -> deny-list: these types stay in clear (everything else encrypted)  ║
+# ║  (field-level filtering is done in the extension via PII_PROTECT_FIELDS)     ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 def _types_env(name):
     return {t.strip().upper() for t in os.environ.get(name, "").split(",") if t.strip()}
-ONLY_TYPES = _types_env("PII_PROTECT_ENTITIES")   # vide = pas de restriction
+ONLY_TYPES = _types_env("PII_PROTECT_ENTITIES")   # empty = no restriction
 SKIP_TYPES = _types_env("PII_PROTECT_SKIP")
 
 def _should_encrypt(entity_type):
@@ -53,7 +53,7 @@ def anonymize(text):
         entities.append(t)
     return out, list(reversed(entities))
 
-# ---------------------------------------------------------------- documents texte
+# ---------------------------------------------------------------- text documents
 def _docx_transform(data, fn):
     from docx import Document
     d = Document(io.BytesIO(data))
@@ -80,10 +80,10 @@ def process_doc(filename, data, mode):
         return _docx_transform(data, fn)
     return fn(data.decode("utf-8", "replace")).encode("utf-8")
 
-# ---------------------------------------------------------------- routes POST
-# Chaque handler reçoit le body (dict JSON) et renvoie un dict (sérialisé en réponse 200).
+# ---------------------------------------------------------------- POST routes
+# Each handler receives the body (JSON dict) and returns a dict (serialized as a 200 response).
 def _file_op(body, fn):
-    """Transforme un fichier base64 -> base64 en conservant le nom."""
+    """Transform a base64 file -> base64 file, keeping the name."""
     out = fn(base64.b64decode(body.get("content_b64", "")))
     return {"filename": body.get("filename", ""), "content_b64": base64.b64encode(out).decode()}
 
@@ -92,7 +92,7 @@ def _anonymize(b):
     return {"text": out, "count": len(ents), "entities": ents}
 
 def _encrypt(b):
-    # Chiffre la VALEUR ENTIÈRE en un marqueur (ex. nom de fichier : on protège tout, pas par PII).
+    # Encrypt the WHOLE value into one marker (e.g. a filename: protect everything, not per-PII).
     t = b.get("text", "")
     return {"text": crypto.marker("TEXT", t) if t else t, "count": 1 if t else 0}
 
@@ -140,7 +140,7 @@ class H(BaseHTTPRequestHandler):
             self._send(500, {"error": str(ex)})
 
 if __name__ == "__main__":
-    print("Chargement de Presidio + du modèle NER…", flush=True)
+    print("Loading Presidio + the NER model…", flush=True)
     analyzer.warmup()
-    print(f"PII engine prêt sur :{PORT}", flush=True)
+    print(f"PII engine ready on :{PORT}", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()

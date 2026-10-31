@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="fr"><head>
+<html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>d9 PII Protect — Voyez vous-même</title>
+<title>d9 PII Protect — See for yourself</title>
 <style>
   :root{--violet:#6644FF;--violet-d:#4422dd;--violet-l:#a594ff;--violet-soft:#efecfe;--mint:#1f9e82;--mint-bright:#2ecda7;--clay:#A84B38;
     --bg:#f3f2fb;--surface:#fff;--ink:#272339;--dim:#6f6990;--line:#e4e1f2;
@@ -49,47 +49,47 @@
   @media(max-width:560px){.bar{grid-template-columns:110px 1fr auto}}
 </style></head>
 <body><div class="wrap">
-  <p class="kick">d9 PII Protect · démonstration</p>
-  <h1>Voyez vous-même.</h1>
-  <p class="lead">Deux démonstrations interactives : ce que voit un agent IA de vos données, et ce que les différents moteurs de détection savent (ou non) repérer en français.</p>
+  <p class="kick">d9 PII Protect · demonstration</p>
+  <h1>See for yourself.</h1>
+  <p class="lead">Two interactive demos: what an AI agent sees of your data, and what the different detection engines can (or cannot) spot in French.</p>
 
-  <h2>1 · La même donnée, vue par un humain et par un agent</h2>
-  <p class="sec-sub">Basculez le sélecteur : l'agent ne voit jamais les données personnelles en clair.</p>
+  <h2>1 · The same data, seen by a human and by an agent</h2>
+  <p class="sec-sub">Flip the selector: the agent never sees personal data in the clear.</p>
   <div class="toggle" role="tablist">
-    <button id="bHuman" class="human" onclick="setMode('human')">👤 Humain</button>
-    <button id="bAgent" class="agent" onclick="setMode('agent')">🤖 Agent IA</button>
+    <button id="bHuman" class="human" onclick="setMode('human')">👤 Human</button>
+    <button id="bAgent" class="agent" onclick="setMode('agent')">🤖 AI agent</button>
   </div>
   <p class="state" id="state"></p>
   <div id="examples"></div>
 
-  <h3 style="margin:26px 0 8px;font-size:18px">Testez le vôtre</h3>
-  <p class="sec-sub">Collez un texte (nom, NIR, IBAN, email, téléphone, SIREN…).</p>
+  <h3 style="margin:26px 0 8px;font-size:18px">Test your own</h3>
+  <p class="sec-sub">Paste some text (name, NIR, IBAN, email, phone, SIREN…).</p>
   <textarea id="ta" oninput="renderTest()">Jean Dupont, NIR 1 85 05 78 006 084 36, IBAN FR7630006000011234567890189, tél 06 12 34 56 78, SIREN 552 100 554.</textarea>
   <div class="card" id="testOut" style="margin-top:12px"></div>
-  <div class="note">Détection ici <strong>côté navigateur</strong> (regex) pour la démo. Le vrai moteur FR — noms, lieux, NIR… via CamemBERT / Anonym-IA — tourne côté serveur, avec chiffrement réversible.</div>
+  <div class="note">Detection here is <strong>browser-side</strong> (regex) for the demo. The real FR engine — names, places, NIR… via CamemBERT / Anonym-IA — runs server-side, with reversible encryption.</div>
 
-  <h2>2 · Notre moteur vs les autres</h2>
-  <p class="sec-sub">Mêmes phrases, trois moteurs. Le <span class="leak">rouge souligné</span> = donnée personnelle <strong>laissée en clair</strong> (fuite) ; le <span class="pii"><span class="lock">🔒</span>chip</span> = détectée.</p>
+  <h2>2 · Our engine vs the others</h2>
+  <p class="sec-sub">Same sentences, three engines. The <span class="leak">underlined red</span> = personal data <strong>left in the clear</strong> (leak); the <span class="pii"><span class="lock">🔒</span>chip</span> = detected.</p>
   <div id="compare"></div>
-  <div class="note">Détections réelles : notre moteur (FR), Microsoft Presidio (anglais par défaut), Hoop/Alcatraz (défaut). Corpus FR.</div>
+  <div class="note">Real detections: our engine (FR), Microsoft Presidio (English by default), Hoop/Alcatraz (default). FR corpus.</div>
 
-  <h2>Le score, en un chiffre</h2>
-  <p class="sec-sub">Rappel mesuré sur un corpus FR identique (46 données personnelles).</p>
+  <h2>The score, in a single number</h2>
+  <p class="sec-sub">Recall measured on an identical FR corpus (46 pieces of personal data).</p>
   <div class="bars">
-    <div class="bar"><div class="n">Hoop · Alcatraz<small>défaut</small></div><div class="tk"><div class="fl" style="width:35%;background:var(--clay)"></div></div><div class="vv">0,35</div></div>
-    <div class="bar"><div class="n">Presidio<small>anglais</small></div><div class="tk"><div class="fl" style="width:87%;background:var(--violet-l)"></div></div><div class="vv">0,87</div></div>
-    <div class="bar"><div class="n" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="tk"><div class="fl" style="width:100%;background:var(--mint-bright)"></div></div><div class="vv" style="color:var(--mint)">1,00</div></div>
+    <div class="bar"><div class="n">Hoop · Alcatraz<small>default</small></div><div class="tk"><div class="fl" style="width:35%;background:var(--clay)"></div></div><div class="vv">0.35</div></div>
+    <div class="bar"><div class="n">Presidio<small>English</small></div><div class="tk"><div class="fl" style="width:87%;background:var(--violet-l)"></div></div><div class="vv">0.87</div></div>
+    <div class="bar"><div class="n" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="tk"><div class="fl" style="width:100%;background:var(--mint-bright)"></div></div><div class="vv" style="color:var(--mint)">1.00</div></div>
   </div>
-  <p class="sec-sub" style="font-size:15px">Identifiants français (NIR, SIREN, SIRET) : les autres <b style="color:var(--clay)">0</b>, nous <b style="color:var(--mint)">26/26</b>.</p>
-  <div class="note" style="border-left-color:var(--violet)">Cadres de référence : <strong>OWASP Top 10 for LLM Applications 2025</strong> (LLM02 — Sensitive Information Disclosure) &amp; <strong>RGPD</strong> (minimisation, art. 5.1.c).</div>
+  <p class="sec-sub" style="font-size:15px">French identifiers (NIR, SIREN, SIRET): others <b style="color:var(--clay)">0</b>, us <b style="color:var(--mint)">26/26</b>.</p>
+  <div class="note" style="border-left-color:var(--violet)">Reference frameworks: <strong>OWASP Top 10 for LLM Applications 2025</strong> (LLM02 — Sensitive Information Disclosure) &amp; <strong>GDPR</strong> (minimization, art. 5.1.c).</div>
 
-  <footer>d9 PII Protect · <a href="./index.html">documentation</a> · <a href="./slides.html">deck</a> — Par La Webcapsule · support@webcapsule.io</footer>
+  <footer>d9 PII Protect · <a href="./index.html">documentation</a> · <a href="./slides.html">deck</a> — By La Webcapsule · support@webcapsule.io</footer>
 </div>
 <script>
 var EXAMPLES=[[{"t": "Le client "}, {"p": "PERSON", "v": "Jean"}, {"t": " "}, {"p": "PERSON", "v": "Dupont"}, {"t": " conteste un prélèvement sur son IBAN "}, {"p": "IBAN_CODE", "v": "FR7630006000011234567890189"}, {"t": ", son NIR "}, {"p": "FR_NIR", "v": "1 85 05 78 006 084 36"}, {"t": ". Le rappeler au "}, {"p": "PHONE_NUMBER", "v": "06 12 34 56 78"}, {"t": "."}], [{"p": "PERSON", "v": "Sophie"}, {"t": " "}, {"p": "PERSON", "v": "Lemaire"}, {"t": " habite au 12 rue des Lilas à Lyon. Email de contact : "}, {"p": "EMAIL_ADDRESS", "v": "sophie.lemaire@example.fr"}, {"t": "."}], [{"p": "ORGANIZATION", "v": "Société Durand SARL"}, {"t": ", SIRET "}, {"p": "SIRET", "v": "552 100 554 00005"}, {"t": ", facture émise le "}, {"p": "DATE_FR", "v": "14 mars 2025"}, {"t": ". Référent : "}, {"p": "PERSON", "v": "Pierre-Yves"}, {"t": " "}, {"p": "PERSON", "v": "Martin"}, {"t": " au "}, {"p": "PHONE_NUMBER", "v": "07.88.99.00.11"}, {"t": "."}]], COMPARE=[{"text": "Le dossier de Jean-Baptiste Lefèvre, NIR 2 85 11 75 116 207 11, transféré le 14 mars 2025.", "spans": [{"label": "PERSON", "v": "de Jean-Baptiste Lefèvre"}, {"label": "FR_NIR", "v": "2 85 11 75 116 207 11"}, {"label": "DATE_FR", "v": "14 mars 2025"}], "caught": {"ours": [true, true, true], "presidio": [true, false, false], "alcatraz": [false, false, false]}}, {"text": "Établissement Durand (SIRET 552 100 554 00005), facture du 1er septembre 2024, gérant Paul Girard.", "spans": [{"label": "PERSON", "v": "Établissement Durand"}, {"label": "SIRET", "v": "552 100 554 00005"}, {"label": "DATE_FR", "v": "1er septembre 2024"}, {"label": "PERSON", "v": "Paul Girard"}], "caught": {"ours": [false, true, true, true], "presidio": [true, false, true, true], "alcatraz": [false, false, false, false]}}, {"text": "Mme Sophie Lemaire, née le 23 juin 1990, NIR 1 72 03 35 238 012 45, dossier clos.", "spans": [{"label": "PERSON", "v": "Mme Sophie Lemaire"}, {"label": "DATE_FR", "v": "23 juin 1990"}, {"label": "FR_NIR", "v": "1 72 03 35 238 012 45"}], "caught": {"ours": [true, true, true], "presidio": [true, false, true], "alcatraz": [false, false, false]}}];
-var LABELS={PERSON:"Nom",PRENOM_PERSONNE:"Prénom",NOM_PERSONNE:"Nom",LOCATION:"Lieu",NOM_VOIE:"Adresse",NUMERO_VOIE:"Adresse",VILLE:"Ville",CODE_POSTAL:"Code postal",COUNTRY:"Pays",
-  FR_NIR:"NIR",NUM_SECURITE_SOCIALE:"NIR",IBAN_CODE:"IBAN",IBAN:"IBAN",PHONE_NUMBER:"Téléphone",TELEPHONE:"Téléphone",EMAIL_ADDRESS:"Email",EMAIL:"Email",
-  SIREN:"SIREN",SIRET:"SIRET",CREDIT_CARD:"Carte",DATE_FR:"Date",DATE:"Date",DATE_TIME:"Date",IP_ADDRESS:"IP",IP:"IP",ORGANIZATION:"Société",NOM_SOCIETE:"Société",URL:"URL",US_DRIVER_LICENSE:"Permis US"};
+var LABELS={PERSON:"Name",PRENOM_PERSONNE:"First name",NOM_PERSONNE:"Name",LOCATION:"Place",NOM_VOIE:"Address",NUMERO_VOIE:"Address",VILLE:"City",CODE_POSTAL:"Postal code",COUNTRY:"Country",
+  FR_NIR:"NIR",NUM_SECURITE_SOCIALE:"NIR",IBAN_CODE:"IBAN",IBAN:"IBAN",PHONE_NUMBER:"Phone",TELEPHONE:"Phone",EMAIL_ADDRESS:"Email",EMAIL:"Email",
+  SIREN:"SIREN",SIRET:"SIRET",CREDIT_CARD:"Card",DATE_FR:"Date",DATE:"Date",DATE_TIME:"Date",IP_ADDRESS:"IP",IP:"IP",ORGANIZATION:"Company",NOM_SOCIETE:"Company",URL:"URL",US_DRIVER_LICENSE:"US license"};
 function lab(t){return LABELS[t]||t;}
 function esc(s){return s.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
 var mode='human';
@@ -98,24 +98,24 @@ function renderSegs(segs){return segs.map(function(s){
   if(s.t!==undefined)return esc(s.t);
   return mode==='agent'?chip(s.p):'<span class="clear-pii">'+esc(s.v)+'</span>';}).join('');}
 function renderExamples(){document.getElementById('examples').innerHTML=EXAMPLES.map(function(segs,i){
-  return '<div class="card"><div class="meta">Fiche #'+(i+1)+'</div>'+renderSegs(segs)+'</div>';}).join('');}
+  return '<div class="card"><div class="meta">Record #'+(i+1)+'</div>'+renderSegs(segs)+'</div>';}).join('');}
 function setMode(m){mode=m;
   document.getElementById('bHuman').className='human'+(m==='human'?' on':'');
   document.getElementById('bAgent').className='agent'+(m==='agent'?' on':'');
-  document.getElementById('state').textContent=m==='human'?'Vue humaine — données en clair.':'Vue agent — données personnelles chiffrées, jamais exposées au modèle.';
+  document.getElementById('state').textContent=m==='human'?'Human view — data in the clear.':'Agent view — personal data encrypted, never exposed to the model.';
   renderExamples();renderTest();}
 
 /* part 2 */
-var ENGINES=[["ours","d9 PII Protect"],["presidio","Presidio (anglais)"],["alcatraz","Hoop · Alcatraz"]];
+var ENGINES=[["ours","d9 PII Protect"],["presidio","Presidio (English)"],["alcatraz","Hoop · Alcatraz"]];
 var cIdx=0;
 function renderCompareRow(ex,key){var caught=ex.caught[key],text=ex.text,pos=0,html='';
   ex.spans.forEach(function(sp,i){var s=text.indexOf(sp.v,pos);if(s<0)s=pos;html+=esc(text.slice(pos,s));
     html+=caught[i]?chip(sp.label):'<span class="leak">'+esc(sp.v)+'</span>';pos=s+sp.v.length;});
   html+=esc(text.slice(pos));return html;}
 function renderCompare(){var ex=COMPARE[cIdx];
-  var tabs=COMPARE.map(function(_,i){return '<button class="ctab'+(i===cIdx?' on':'')+'" onclick="cIdx='+i+';renderCompare()">Exemple '+(i+1)+'</button>';}).join('');
+  var tabs=COMPARE.map(function(_,i){return '<button class="ctab'+(i===cIdx?' on':'')+'" onclick="cIdx='+i+';renderCompare()">Example '+(i+1)+'</button>';}).join('');
   var rows=ENGINES.map(function(e){var caught=ex.caught[e[0]],n=caught.filter(Boolean).length,tot=caught.length;
-    return '<div class="erow '+(e[0]==='ours'?'eng-ours':'')+'"><div class="ehead"><span>'+e[1]+'</span><span class="escore">'+n+'/'+tot+' détectés</span></div><div class="ebody">'+renderCompareRow(ex,e[0])+'</div></div>';}).join('');
+    return '<div class="erow '+(e[0]==='ours'?'eng-ours':'')+'"><div class="ehead"><span>'+e[1]+'</span><span class="escore">'+n+'/'+tot+' detected</span></div><div class="ebody">'+renderCompareRow(ex,e[0])+'</div></div>';}).join('');
   document.getElementById('compare').innerHTML='<div class="ctabs">'+tabs+'</div>'+rows;}
 
 /* détecteur navigateur (regex) pour « testez le vôtre » */

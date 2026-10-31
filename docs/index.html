@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>d9 PII Protect — Documentation</title>
-<meta name="description" content="Plugin d9 d'anonymisation gouvernée des PII pour les agents IA — chiffrement réversible, FR-first.">
+<meta name="description" content="d9 plugin for governed PII anonymization for AI agents — reversible encryption, FR-first.">
 <style>
   :root {
     --violet: #6644FF; --violet-d: #4422dd; --violet-l: #a594ff; --violet-soft: #ece9ff;
@@ -151,187 +151,187 @@
     <span class="logo-mark" aria-hidden="true">d9</span>
     <span class="wm">d9&nbsp;PII&nbsp;Protect</span>
   </div>
-  <span class="d9tag">extension d9</span>
+  <span class="d9tag">d9 extension</span>
 </header>
 
 <div class="wrap">
   <nav class="side" id="nav">
     <div class="grp">Introduction</div>
     <a href="#pitch">Pitch</a>
-    <a href="#fonctionnement">Comment ça marche</a>
-    <div class="grp">Utilisation</div>
-    <a href="#demarrage">Démarrage rapide</a>
+    <a href="#fonctionnement">How it works</a>
+    <div class="grp">Usage</div>
+    <a href="#demarrage">Quick start</a>
     <a href="#configuration">Configuration</a>
-    <div class="grp">Sous le capot</div>
-    <a href="#securite">Modèle de sécurité</a>
-    <a href="#moteur">Moteur de détection FR</a>
-    <a href="#bedrock">L'hébergement ne suffit pas</a>
-    <div class="grp">Suite</div>
+    <div class="grp">Under the hood</div>
+    <a href="#securite">Security model</a>
+    <a href="#moteur">FR detection engine</a>
+    <a href="#bedrock">Hosting is not enough</a>
+    <div class="grp">More</div>
     <a href="#roadmap">Roadmap</a>
   </nav>
 
   <main>
     <div class="hero">
-      <p class="eyebrow">Extension d9 · anonymisation gouvernée</p>
-      <h1>Vos agents IA lisent vos données.<br>Jamais vos données personnelles.</h1>
-      <p class="taglines">Une extension d9 qui détecte les PII françaises dans vos champs texte libre, vos documents et vos images, et les <strong>chiffre (ou caviarde) à la volée, de façon réversible</strong>, pour tout agent IA — sans toucher à ce que voient vos utilisateurs humains.</p>
+      <p class="eyebrow">d9 extension · governed anonymization</p>
+      <h1>Your AI agents read your data.<br>Never your personal data.</h1>
+      <p class="taglines">A d9 extension that detects French PII in your free-text fields, documents and images, and <strong>encrypts (or redacts) it on the fly, reversibly</strong>, for any AI agent — without touching what your human users see.</p>
       <div class="cta">
-        <a class="btn p" href="#demarrage">Démarrage rapide →</a>
-        <a class="btn g" href="./comparator.html">Comparateur interactif</a>
-        <a class="btn g" href="#fonctionnement">Comment ça marche</a>
+        <a class="btn p" href="#demarrage">Quick start →</a>
+        <a class="btn g" href="./comparator.html">Interactive comparator</a>
+        <a class="btn g" href="#fonctionnement">How it works</a>
       </div>
     </div>
 
     <section id="pitch">
       <h2>Pitch</h2>
-      <p class="lede">d9 sait <em>qui</em> a le droit d'accéder à <em>quoi</em>. Il ne sait pas qu'un numéro de sécurité sociale traîne dans un champ commentaire.</p>
-      <p>Le RBAC de d9 protège des <strong>champs entiers</strong> (par rôle, par ligne). Mais une PII cachée dans un champ texte libre autorisé — un NIR dans une <code>note</code>, un nom dans un message de ticket — passe <strong>en clair</strong> dans le contexte de l'agent. Une fois dans le contexte, elle part au modèle : egress, rétention, hors de votre contrôle.</p>
-      <p><strong class="accent">L'extension ferme ce trou.</strong> Pour un utilisateur de rôle « agent », elle intercepte la lecture, détecte les PII dans le contenu, et les remplace par un <strong>chiffré réversible</strong>. L'agent raisonne sur la donnée, agit, réécrit — sans jamais voir la moindre information personnelle. Un humain autorisé, porteur de la clé, ré-identifie sous audit.</p>
+      <p class="lede">d9 knows <em>who</em> is allowed to access <em>what</em>. It doesn't know that a social security number is sitting in a comment field.</p>
+      <p>d9's RBAC protects <strong>entire fields</strong> (by role, by row). But a PII hidden in an authorized free-text field — an NIR in a <code>note</code>, a name in a ticket message — flows through <strong>in the clear</strong> into the agent's context. Once in the context, it goes to the model: egress, retention, out of your control.</p>
+      <p><strong class="accent">The extension closes this gap.</strong> For a user with an "agent" role, it intercepts the read, detects PII in the content, and replaces it with a <strong>reversible ciphertext</strong>. The agent reasons about the data, acts, rewrites — without ever seeing a single piece of personal information. An authorized human, holding the key, re-identifies under audit.</p>
       <div class="flow" aria-hidden="true">
-        <div class="node"><div class="t">d9</div><div class="b">RBAC — qui accède à quoi</div></div>
+        <div class="node"><div class="t">d9</div><div class="b">RBAC — who accesses what</div></div>
         <div class="arrow">+</div>
-        <div class="node hl"><div class="t">Extension</div><div class="b">Contenu PII des champs libres</div></div>
+        <div class="node hl"><div class="t">Extension</div><div class="b">PII content of free-text fields</div></div>
         <div class="arrow">=</div>
-        <div class="node"><div class="t">Résultat</div><div class="b">Base « agent-ready » gouvernée</div></div>
+        <div class="node"><div class="t">Result</div><div class="b">Governed "agent-ready" database</div></div>
       </div>
-      <div class="note"><span class="lbl">Positionnement</span>Deux briques complémentaires : <strong>d9</strong> expose et gouverne l'accès (API, rôles, tokens) ; l'<strong>extension</strong> anonymise le contenu, quelle que soit la source. FR-first, déployé dans votre environnement.</div>
+      <div class="note"><span class="lbl">Positioning</span>Two complementary building blocks: <strong>d9</strong> exposes and governs access (API, roles, tokens); the <strong>extension</strong> anonymizes the content, whatever the source. FR-first, deployed in your environment.</div>
     </section>
 
     <section id="fonctionnement">
-      <h2>Comment ça marche</h2>
-      <p>Un hook d9 (non-sandboxé) branché sur le cycle de vie des items. Il appelle un <strong>moteur d'anonymisation</strong> local qui détecte les PII (modèle FR) et les chiffre in-place.</p>
+      <h2>How it works</h2>
+      <p>A d9 hook (non-sandboxed) wired into the item lifecycle. It calls a local <strong>anonymization engine</strong> that detects PII (FR model) and encrypts it in-place.</p>
       <div class="flow" aria-hidden="true">
-        <div class="node"><div class="t">Agent IA</div><div class="b">GET /items/tickets</div></div>
+        <div class="node"><div class="t">AI agent</div><div class="b">GET /items/tickets</div></div>
         <div class="arrow">→</div>
         <div class="node"><div class="t">d9</div><div class="b">RBAC + hook items.read</div></div>
         <div class="arrow">→</div>
-        <div class="node hl"><div class="t">Moteur</div><div class="b">détecte + chiffre</div></div>
+        <div class="node hl"><div class="t">Engine</div><div class="b">detects + encrypts</div></div>
         <div class="arrow">→</div>
-        <div class="node"><div class="t">Détection FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
+        <div class="node"><div class="t">FR detection</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
       </div>
-      <h3>À la lecture — anonymisation</h3>
-      <p>Si le demandeur a un rôle agent, chaque champ texte libre traverse le moteur — <strong>par défaut, sans configuration</strong>. Les PII deviennent des marqueurs auto-porteurs <code>[[PII:TYPE:chiffré]]</code> : l'agent voit le <em>type</em> (pour raisonner) mais jamais la valeur.</p>
-      <pre><span class="c">// réponse vue par un agent</span>
+      <h3>On read — anonymization</h3>
+      <p>If the requester has an agent role, every free-text field passes through the engine — <strong>by default, with no configuration</strong>. PII becomes self-describing markers <code>[[PII:TYPE:ciphertext]]</code>: the agent sees the <em>type</em> (to reason about it) but never the value.</p>
+      <pre><span class="c">// response seen by an agent</span>
 { "note": "Le client [[PII:PRENOM_PERSONNE:9MUXB2me…]] [[PII:NOM_PERSONNE:a7Fz…]]
             (NIR [[PII:NUM_SECURITE_SOCIALE:C1OIENV…]]) conteste un prélèvement
             sur son IBAN [[PII:IBAN_CODE:mpoZ9GG…]]." }
 
-<span class="c">// même enregistrement, vu par un humain (rôle admin)</span>
+<span class="c">// same record, seen by a human (admin role)</span>
 { "note": "Le client Jean Dupont (NIR 1 85 05 78 006 084 36)
             conteste un prélèvement sur son IBAN FR7630006000011234567890189." }</pre>
-      <h3>À l'écriture — rehydratation</h3>
-      <p>Quand un agent réécrit un enregistrement en renvoyant des marqueurs (il a modifié le statut, ajouté une note…), le hook les <strong>déchiffre avant persistance</strong>. La vraie donnée est restaurée en base, intacte. L'agent n'a jamais eu besoin de voir le clair pour travailler dessus.</p>
-      <div class="note"><span class="lbl">Round-trip</span>Agent lit (chiffré) → modifie → réécrit → la base contient la PII d'origine, zéro corruption.</div>
-      <h3>Fichiers — secure-by-default sur tout</h3>
-      <p>Pas seulement les champs : <strong>tout fichier accessible à un agent</strong> est protégé à la volée au téléchargement (<code>/assets</code>), selon son type :</p>
+      <h3>On write — rehydration</h3>
+      <p>When an agent rewrites a record by sending back markers (it changed the status, added a note…), the hook <strong>decrypts them before persistence</strong>. The real data is restored in the database, intact. The agent never needed to see the clear text to work on it.</p>
+      <div class="note"><span class="lbl">Round-trip</span>Agent reads (encrypted) → edits → rewrites → the database holds the original PII, zero corruption.</div>
+      <h3>Files — secure-by-default on everything</h3>
+      <p>Not just fields: <strong>any file accessible to an agent</strong> is protected on the fly at download (<code>/assets</code>), depending on its type:</p>
       <ul>
-        <li><strong>Documents texte</strong> (<code>.txt</code> / <code>.md</code> / <code>.csv</code> / <code>.json</code> / <code>.docx</code>) → tokenisés réversiblement, comme les champs. S'il le <strong>ré-uploade</strong>, les marqueurs sont <strong>rehydratés avant stockage</strong> : l'agent peut lire ET mettre à jour sans jamais voir la PII.</li>
-        <li><strong>Images</strong> (PNG/JPG…) → <strong>caviardées</strong> (OCR + masquage des zones PII). Destructif pour la copie de l'agent ; le fichier stocké reste intact et l'humain autorisé télécharge l'original.</li>
-        <li><strong>Type non pris en charge</strong> (PDF, binaire…) → <strong>refus fail-closed</strong> (HTTP 415). On ne laisse rien fuir par défaut.</li>
+        <li><strong>Text documents</strong> (<code>.txt</code> / <code>.md</code> / <code>.csv</code> / <code>.json</code> / <code>.docx</code>) → reversibly tokenized, like fields. If it <strong>re-uploads</strong> them, the markers are <strong>rehydrated before storage</strong>: the agent can read AND update without ever seeing the PII.</li>
+        <li><strong>Images</strong> (PNG/JPG…) → <strong>redacted</strong> (OCR + masking of PII zones). Destructive for the agent's copy; the stored file stays intact and the authorized human downloads the original.</li>
+        <li><strong>Unsupported type</strong> (PDF, binary…) → <strong>fail-closed refusal</strong> (HTTP 415). Nothing is allowed to leak by default.</li>
       </ul>
     </section>
 
     <section id="demarrage">
-      <h2>Démarrage rapide</h2>
+      <h2>Quick start</h2>
       <ol class="steps">
-        <li><strong>Lancez la stack de référence</strong> (d9 + le moteur sidecar). Le moteur se construit tout seul.
+        <li><strong>Launch the reference stack</strong> (d9 + the sidecar engine). The engine builds itself.
           <pre>cd deploy
-cp .env.example .env            <span class="c"># renseigner PII_PROTECT_KEY</span>
-docker compose up -d --build    <span class="c"># d9 sur :8055 + moteur</span></pre></li>
-        <li><strong>Marquez le rôle « Agent IA »</strong> : activez le toggle <code>is_agent</code> sur la définition du rôle (c'est le seul ajout d'interface).</li>
-        <li><strong>C'est tout — secure-by-default.</strong> Sans aucune config, tous les champs <code>text</code> et tous les fichiers accessibles à ce rôle sont protégés. Un agent lit l'API d9 habituelle ; un humain voit le clair.
+cp .env.example .env            <span class="c"># set PII_PROTECT_KEY</span>
+docker compose up -d --build    <span class="c"># d9 on :8055 + engine</span></pre></li>
+        <li><strong>Mark the "AI Agent" role</strong>: enable the <code>is_agent</code> toggle on the role definition (that's the only interface addition).</li>
+        <li><strong>That's it — secure-by-default.</strong> With no config at all, every <code>text</code> field and every file accessible to this role is protected. An agent reads the usual d9 API; a human sees the clear text.
           <pre>curl /items/tickets -H "Authorization: Bearer <span class="c">$TOKEN_AGENT</span>"
-<span class="c"># → note : "… [[PII:NUM_SECURITE_SOCIALE:…]] …"</span></pre></li>
+<span class="c"># → note: "… [[PII:NUM_SECURITE_SOCIALE:…]] …"</span></pre></li>
       </ol>
-      <div class="note"><span class="lbl">Déployé chez vous</span>d9, l'extension et le moteur FR tournent dans votre environnement — <strong>un moteur par environnement</strong>. Aucune PII en clair ne sort vers un tiers.</div>
+      <div class="note"><span class="lbl">Deployed on your side</span>d9, the extension and the FR engine run in your environment — <strong>one engine per environment</strong>. No PII in the clear ever leaves to a third party.</div>
     </section>
 
     <section id="configuration">
       <h2>Configuration</h2>
-      <p>Tout est piloté par <strong>variables d'environnement</strong> — aucun fichier de config, aucun couplage à un environnement précis. Par défaut tout est protégé ; on restreint ensuite.</p>
+      <p>Everything is driven by <strong>environment variables</strong> — no config file, no coupling to a specific environment. By default everything is protected; you restrict afterward.</p>
       <table>
-        <tr><th>Variable</th><th>Brique</th><th>Rôle</th></tr>
-        <tr><td><code>PII_PROTECT_KEY</code></td><td>moteur</td><td>Clé AES-256 (secret/KMS en prod). La custody = la frontière de sécurité.</td></tr>
-        <tr><td><code>PII_PROTECT_ENGINE_URL</code></td><td>extension</td><td>URL du moteur sidecar (dans le réseau de l'environnement).</td></tr>
-        <tr><td><code>PII_PROTECT_FIELDS</code></td><td>extension</td><td>JSON <code>{collection:[champs]}</code> pour restreindre. Vide = <strong>tous les champs <code>text</code></strong>.</td></tr>
-        <tr><td><code>PII_PROTECT_ENTITIES</code> / <code>PII_PROTECT_SKIP</code></td><td>moteur</td><td>Allow-list / deny-list des <strong>types</strong> de PII à chiffrer.</td></tr>
-        <tr><td><code>PII_NER_MODEL</code></td><td>moteur</td><td>Modèle NER HuggingFace (swap de langue/modèle — cf. <code>engine/MODELS.md</code>).</td></tr>
-        <tr><td><strong>Toggle <code>is_agent</code></strong></td><td>rôle</td><td>Désigne les rôles « agents » sur la page du rôle. Les autres voient le clair.</td></tr>
+        <tr><th>Variable</th><th>Building block</th><th>Role</th></tr>
+        <tr><td><code>PII_PROTECT_KEY</code></td><td>engine</td><td>AES-256 key (secret/KMS in prod). Custody = the security boundary.</td></tr>
+        <tr><td><code>PII_PROTECT_ENGINE_URL</code></td><td>extension</td><td>URL of the sidecar engine (within the environment's network).</td></tr>
+        <tr><td><code>PII_PROTECT_FIELDS</code></td><td>extension</td><td>JSON <code>{collection:[fields]}</code> to restrict. Empty = <strong>all <code>text</code> fields</strong>.</td></tr>
+        <tr><td><code>PII_PROTECT_ENTITIES</code> / <code>PII_PROTECT_SKIP</code></td><td>engine</td><td>Allow-list / deny-list of PII <strong>types</strong> to encrypt.</td></tr>
+        <tr><td><code>PII_NER_MODEL</code></td><td>engine</td><td>HuggingFace NER model (language/model swap — see <code>engine/MODELS.md</code>).</td></tr>
+        <tr><td><strong>Toggle <code>is_agent</code></strong></td><td>role</td><td>Designates "agent" roles on the role page. Others see the clear text.</td></tr>
       </table>
     </section>
 
     <section id="securite">
-      <h2>Modèle de sécurité</h2>
+      <h2>Security model</h2>
       <ul>
-        <li><strong>AES-256-GCM, nonce aléatoire par valeur.</strong> Impossible à reconstituer sans la clé.</li>
-        <li><strong>Zéro fuite d'égalité.</strong> La même valeur donne deux chiffrés différents : un agent ne peut même pas déduire que deux fiches partagent le même NIR.</li>
-        <li><strong>Réversibilité gouvernée.</strong> Le chiffré est déchiffrable par le porteur de clé — pas par l'agent, qui ne voit jamais la clé. Pseudonymisation contrôlée (ré-identification sous RBAC + audit), pas du masquage à sens unique.</li>
-        <li><strong>Fail-closed.</strong> Si le moteur est indisponible, le champ est masqué (<code>[protégé — indisponible]</code>), jamais laissé en clair. Une panne ne provoque pas de fuite.</li>
-        <li><strong>Authentifié (GCM).</strong> Toute altération d'un chiffré est détectée.</li>
+        <li><strong>AES-256-GCM, random nonce per value.</strong> Impossible to reconstruct without the key.</li>
+        <li><strong>Zero equality leakage.</strong> The same value yields two different ciphertexts: an agent cannot even infer that two records share the same NIR.</li>
+        <li><strong>Governed reversibility.</strong> The ciphertext is decryptable by the key holder — not by the agent, which never sees the key. Controlled pseudonymization (re-identification under RBAC + audit), not one-way masking.</li>
+        <li><strong>Fail-closed.</strong> If the engine is unavailable, the field is masked (<code>[protected — unavailable]</code>), never left in the clear. An outage does not cause a leak.</li>
+        <li><strong>Authenticated (GCM).</strong> Any tampering with a ciphertext is detected.</li>
       </ul>
-      <div class="note warn"><span class="lbl">Custody de clé</span>KMS/HSM, rotation, journal d'audit des ré-identifications.</div>
+      <div class="note warn"><span class="lbl">Key custody</span>KMS/HSM, rotation, audit log of re-identifications.</div>
     </section>
 
     <section id="moteur">
-      <h2>Moteur de détection FR</h2>
-      <p>Là où les outils du marché (hoop, Presidio par défaut, vaults SaaS) sont <strong>anglophones</strong>, cette extension est FR-first : NER français (CamemBERT / Anonym-IA) pour les noms, lieux et le <code>NIR</code>, plus des recognizers structurés (IBAN, téléphone, email) et des customs <code>SIREN</code> / <code>SIRET</code> (Luhn) et dates textuelles françaises.</p>
-      <p>Rappel mesuré sur un corpus FR identique (46 PII), même règle de comptage :</p>
+      <h2>FR detection engine</h2>
+      <p>Where market tools (hoop, Presidio by default, SaaS vaults) are <strong>English-speaking</strong>, this extension is FR-first: French NER (CamemBERT / Anonym-IA) for names, places and the <code>NIR</code>, plus structured recognizers (IBAN, phone, email) and custom <code>SIREN</code> / <code>SIRET</code> (Luhn) and French textual dates.</p>
+      <p>Recall measured on an identical FR corpus (46 PII), same counting rule:</p>
       <table>
-        <tr><th>Moteur</th><th class="num">Rappel</th><th>IDs FR (NIR/SIREN/SIRET)</th></tr>
-        <tr><td>hoop · Alcatraz (défaut)</td><td class="num">0,35</td><td class="bad">0 / 8</td></tr>
-        <tr><td>hoop · Presidio (EN)</td><td class="num">0,87</td><td class="bad">≈ 0 réel</td></tr>
-        <tr><td><strong>Cette extension (FR-first)</strong></td><td class="num ok">1,00</td><td class="ok">8 / 8</td></tr>
+        <tr><th>Engine</th><th class="num">Recall</th><th>FR IDs (NIR/SIREN/SIRET)</th></tr>
+        <tr><td>hoop · Alcatraz (default)</td><td class="num">0.35</td><td class="bad">0 / 8</td></tr>
+        <tr><td>hoop · Presidio (EN)</td><td class="num">0.87</td><td class="bad">≈ 0 real</td></tr>
+        <tr><td><strong>This extension (FR-first)</strong></td><td class="num ok">1.00</td><td class="ok">8 / 8</td></tr>
       </table>
-      <p class="dim" style="font-size:14px">Détection : Microsoft Presidio + modèles FR open source.</p>
+      <p class="dim" style="font-size:14px">Detection: Microsoft Presidio + open source FR models.</p>
     </section>
 
     <section id="bedrock">
       <p class="eyebrow">Concept</p>
-      <h2>Pourquoi l'hébergement du modèle ne suffit pas</h2>
-      <p>Faire tourner le modèle chez soi, ou via un fournisseur comme Bedrock (sans entraînement, en région UE), sécurise <em>où</em> l'inférence a lieu. C'est utile, mais deux problèmes restent entiers — et aucun ne dépend de l'endroit où tourne le modèle.</p>
+      <h2>Why hosting the model is not enough</h2>
+      <p>Running the model on your own infrastructure, or via a provider like Bedrock (no training, in an EU region), secures <em>where</em> inference happens. That's useful, but two problems remain untouched — and neither depends on where the model runs.</p>
 
-      <h3>1. La minimisation des données</h3>
-      <p>Le RGPD (article 5.1.c) impose de ne traiter que les données personnelles nécessaires à la tâche. Un agent de support n'a pas besoin de lire un numéro de sécurité sociale en clair pour traiter un ticket. Le lui transmettre — même vers un modèle hébergé en interne — reste un traitement de trop. La question n'est pas « où envoyer la donnée », mais « faut-il l'envoyer ».</p>
+      <h3>1. Data minimization</h3>
+      <p>The GDPR (article 5.1.c) requires processing only the personal data necessary for the task. A support agent does not need to read a social security number in the clear to handle a ticket. Passing it along — even to an internally hosted model — is still one processing step too many. The question is not "where to send the data", but "whether to send it".</p>
 
-      <h3>2. La propagation dans la chaîne de l'agent</h3>
-      <p>Les données qu'un agent reçoit ne restent pas dans l'appel au modèle : elles sont journalisées et stockées tout au long de la chaîne.</p>
+      <h3>2. Propagation through the agent's chain</h3>
+      <p>The data an agent receives does not stay within the model call: it is logged and stored all along the chain.</p>
       <ul>
-        <li><strong>Traces et observabilité</strong> — les outils de suivi enregistrent entrées et sorties, souvent par défaut, parfois sur un service tiers.</li>
-        <li><strong>Résultats d'outils</strong> — ce qu'un agent lit en base revient dans son contexte, puis dans les logs.</li>
-        <li><strong>Mémoire et historique</strong> de conversation.</li>
-        <li><strong>Caches et logs applicatifs.</strong></li>
-        <li><strong>Systèmes en aval</strong> que l'agent alimente.</li>
+        <li><strong>Traces and observability</strong> — tracking tools record inputs and outputs, often by default, sometimes on a third-party service.</li>
+        <li><strong>Tool results</strong> — what an agent reads from the database comes back into its context, then into the logs.</li>
+        <li><strong>Memory and conversation history.</strong></li>
+        <li><strong>Caches and application logs.</strong></li>
+        <li><strong>Downstream systems</strong> the agent feeds.</li>
       </ul>
-      <p>Chaque étape est une copie de la donnée, à sécuriser, auditer et conserver. Héberger le modèle n'en couvre qu'une seule.</p>
+      <p>Each step is a copy of the data, to secure, audit and retain. Hosting the model covers only one of them.</p>
 
-      <h3>La réponse : protéger le contenu, à la source</h3>
-      <p>En détectant et chiffrant les données personnelles <strong>avant</strong> qu'elles entrent dans le contexte de l'agent, on traite les deux problèmes à la fois : ce qui est inutile n'est jamais transmis, et ce qui circule ensuite — traces, mémoire, logs — est déjà chiffré. Il ne reste qu'un seul endroit où la donnée est en clair : la source.</p>
+      <h3>The answer: protect the content, at the source</h3>
+      <p>By detecting and encrypting personal data <strong>before</strong> it enters the agent's context, you address both problems at once: what is unnecessary is never transmitted, and what circulates afterward — traces, memory, logs — is already encrypted. Only one place remains where the data is in the clear: the source.</p>
 
-      <div class="note"><span class="lbl">À retenir</span>L'hébergement (self-hosté / Bedrock) décide <em>où</em> la donnée est traitée. La protection du contenu décide <em>quelle</em> donnée est exposée. La seconde est l'exigence de minimisation du RGPD — l'hébergement ne la remplace pas.</div>
+      <div class="note"><span class="lbl">Key takeaway</span>Hosting (self-hosted / Bedrock) decides <em>where</em> the data is processed. Content protection decides <em>which</em> data is exposed. The latter is the GDPR's minimization requirement — hosting does not replace it.</div>
 
-      <p class="dim" style="font-size:14px">Pour aller plus loin : OWASP Top 10 for LLM Applications 2025 (LLM02) · EDPB 2025 · « PII in LLM Pipelines » (tianpan.co).</p>
+      <p class="dim" style="font-size:14px">Further reading: OWASP Top 10 for LLM Applications 2025 (LLM02) · EDPB 2025 · "PII in LLM Pipelines" (tianpan.co).</p>
     </section>
 
     <section id="roadmap">
       <h2>Roadmap</h2>
-      <p><strong>Déjà livré :</strong> détection FR (Presidio + Anonym-IA), chiffrement réversible AES-GCM, round-trip lecture/écriture, <strong>secure-by-default</strong> sur tous les champs texte, documents et images (caviardage OCR), refus fail-closed des types non pris en charge, tout piloté par variables d'environnement.</p>
-      <p><strong>À venir :</strong></p>
+      <p><strong>Already shipped:</strong> FR detection (Presidio + Anonym-IA), reversible AES-GCM encryption, read/write round-trip, <strong>secure-by-default</strong> on all text fields, documents and images (OCR redaction), fail-closed refusal of unsupported types, everything driven by environment variables.</p>
+      <p><strong>Coming soon:</strong></p>
       <ul>
-        <li><strong>Validation humaine (HITL)</strong> — mise en attente + lien d'approbation pour la ré-identification ; notifications email puis Slack / Teams / 2FA. <span class="dim">Phase 2, possiblement payante.</span></li>
-        <li><strong>Rotation de clés / fenêtre de validité</strong> — tokens liés à une version de clé horodatée → réversibilité bornée dans le temps ; custody via KMS/HSM + journal d'audit des ré-identifications.</li>
-        <li><strong>PDF</strong> (texte et scanné) — aujourd'hui refusé fail-closed, faute de pipeline OCR PDF.</li>
-        <li><strong>Mode déterministe optionnel</strong> — même entrée → même jeton, pour préserver les clés de jointure quand requis.</li>
-        <li><strong>Distribution 1-clic</strong> — extension publiée sur <strong>npm</strong> (marketplace Directus) + moteur sur un registry de conteneurs (GHCR).</li>
-        <li><strong>Sidecar standalone</strong> — la même brique d'anonymisation devant une API tierce, hors d9.</li>
-        <li><strong>Recognizers FR additionnels</strong> + affinage NER par langue (NER en ONNX quantifié pour alléger l'image).</li>
+        <li><strong>Human validation (HITL)</strong> — hold + approval link for re-identification; email notifications then Slack / Teams / 2FA. <span class="dim">Phase 2, possibly paid.</span></li>
+        <li><strong>Key rotation / validity window</strong> — tokens tied to a timestamped key version → time-bounded reversibility; custody via KMS/HSM + audit log of re-identifications.</li>
+        <li><strong>PDF</strong> (text and scanned) — today refused fail-closed, for lack of a PDF OCR pipeline.</li>
+        <li><strong>Optional deterministic mode</strong> — same input → same token, to preserve join keys when required.</li>
+        <li><strong>1-click distribution</strong> — extension published on <strong>npm</strong> (Directus marketplace) + engine on a container registry (GHCR).</li>
+        <li><strong>Standalone sidecar</strong> — the same anonymization block in front of a third-party API, outside d9.</li>
+        <li><strong>Additional FR recognizers</strong> + per-language NER tuning (quantized ONNX NER to lighten the image).</li>
       </ul>
     </section>
   </main>
 </div>
 
 <footer>
-  d9 PII Protect · extension d9 — anonymisation gouvernée des PII pour agents IA · FR-first, déployé dans votre environnement.<br>
-  Par La Webcapsule · support@webcapsule.io · <a href="https://github.com/Grouzoul/d9-pii-protect">github.com/Grouzoul/d9-pii-protect</a>
+  d9 PII Protect · d9 extension — governed PII anonymization for AI agents · FR-first, deployed in your environment.<br>
+  By La Webcapsule · support@webcapsule.io · <a href="https://github.com/Grouzoul/d9-pii-protect">github.com/Grouzoul/d9-pii-protect</a>
 </footer>
 
 <script>

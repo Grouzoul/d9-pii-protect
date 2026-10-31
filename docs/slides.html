@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -123,118 +123,118 @@
 
     <!-- 1 — titre -->
     <section class="slide title"><div class="inner">
-      <div class="mark"><span class="sq">d9</span><span class="tag">extension d9 · La Webcapsule</span></div>
+      <div class="mark"><span class="sq">d9</span><span class="tag">d9 extension · La Webcapsule</span></div>
       <h1>d9 PII&nbsp;Protect<span class="dot">.</span></h1>
-      <p class="lead sub big" style="color:var(--ink);max-width:22em">L'anonymisation <span class="accent">gouvernée</span> des données personnelles pour vos agents IA.</p>
-      <div class="foot">FR-first · chiffrement réversible · déployé dans votre environnement</div>
+      <p class="lead sub big" style="color:var(--ink);max-width:22em"><span class="accent">Governed</span> anonymization of personal data for your AI agents.</p>
+      <div class="foot">FR-first · reversible encryption · deployed in your environment</div>
     </div></section>
 
     <!-- 2 — problème -->
     <section class="slide"><div class="inner">
-      <p class="kick">Le problème</p>
-      <h2>Vos agents IA lisent vos données.<br>Y compris les données personnelles.</h2>
-      <p>Le RBAC protège des <strong>champs entiers</strong>. Mais un NIR glissé dans un commentaire, un nom dans un ticket, passent <strong>en clair</strong> dans le contexte de l'agent — puis vers le modèle, les logs, la mémoire.</p>
+      <p class="kick">The problem</p>
+      <h2>Your AI agents read your data.<br>Including personal data.</h2>
+      <p>RBAC protects <strong>entire fields</strong>. But an NIR slipped into a comment, a name in a ticket, flow through <strong>in the clear</strong> into the agent's context — then to the model, the logs, the memory.</p>
     </div></section>
 
     <!-- 3 — solution une phrase -->
     <section class="slide"><div class="inner">
-      <p class="kick">La solution</p>
-      <p class="big">d9 gère <span class="accent">qui</span> accède.<br>PII Protect gère <span class="mintc">ce que</span> l'agent voit.</p>
-      <p class="sub">Détection française + chiffrement réversible, appliqués <strong>à la source</strong> — avant que la donnée entre dans la chaîne de l'agent. Un humain autorisé ré-identifie sous contrôle.</p>
+      <p class="kick">The solution</p>
+      <p class="big">d9 governs <span class="accent">who</span> accesses.<br>PII Protect governs <span class="mintc">what</span> the agent sees.</p>
+      <p class="sub">French detection + reversible encryption, applied <strong>at the source</strong> — before the data enters the agent's chain. An authorized human re-identifies under control.</p>
     </div></section>
 
     <!-- 4 — hébergement ne suffit pas -->
     <section class="slide"><div class="inner">
-      <p class="kick">Idée reçue</p>
-      <h2>« Un LLM self-hosté ou Bedrock, ça suffit. »</h2>
+      <p class="kick">Common misconception</p>
+      <h2>"A self-hosted LLM or Bedrock is enough."</h2>
       <div class="cols">
-        <div class="card"><div class="n">01 · Droit</div><h3>Minimisation (RGPD 5.1.c)</h3><p>Une donnée personnelle non nécessaire à la tâche ne doit pas être traitée — <strong>où que tourne le modèle</strong>.</p></div>
-        <div class="card"><div class="n">02 · Technique</div><h3>La traînée</h3><p>Ce que l'agent reçoit se recopie dans les traces, tool calls, mémoire, caches, logs, systèmes en aval.</p></div>
+        <div class="card"><div class="n">01 · Legal</div><h3>Minimization (GDPR 5.1.c)</h3><p>Personal data not necessary for the task must not be processed — <strong>wherever the model runs</strong>.</p></div>
+        <div class="card"><div class="n">02 · Technical</div><h3>The trail</h3><p>What the agent receives is copied into traces, tool calls, memory, caches, logs, downstream systems.</p></div>
       </div>
-      <div class="foot">L'hébergement décide le <strong>où</strong>. La protection du contenu décide le <strong>quoi</strong>.</div>
+      <div class="foot">Hosting decides the <strong>where</strong>. Content protection decides the <strong>what</strong>.</div>
     </div></section>
 
     <!-- 5 — la traînée -->
     <section class="slide"><div class="inner">
-      <p class="kick">La traînée de l'agent</p>
-      <p class="big">1 appel modèle = 1 hop.<br>Un agent = <span class="accent">N copies</span> de la donnée.</p>
+      <p class="kick">The agent's trail</p>
+      <p class="big">1 model call = 1 hop.<br>One agent = <span class="accent">N copies</span> of the data.</p>
       <div class="chips">
-        <span class="chip">Traces / observabilité<small>❌ hébergement</small></span>
-        <span class="chip">Tool calls<small>❌ hébergement</small></span>
-        <span class="chip">Mémoire / historique<small>❌ hébergement</small></span>
-        <span class="chip">Caches / logs<small>❌ hébergement</small></span>
-        <span class="chip">Systèmes en aval<small>❌ hébergement</small></span>
+        <span class="chip">Traces / observability<small>❌ hosting</small></span>
+        <span class="chip">Tool calls<small>❌ hosting</small></span>
+        <span class="chip">Memory / history<small>❌ hosting</small></span>
+        <span class="chip">Caches / logs<small>❌ hosting</small></span>
+        <span class="chip">Downstream systems<small>❌ hosting</small></span>
       </div>
-      <p>Tokeniser <strong>à la source</strong> couvre les N d'un seul coup : il ne reste qu'un endroit où la donnée est en clair.</p>
+      <p>Tokenizing <strong>at the source</strong> covers all N at once: only one place remains where the data is in the clear.</p>
     </div></section>
 
     <!-- 6 — chiffres -->
     <section class="slide"><div class="inner">
-      <p class="kick">Ce que dit l'industrie</p>
+      <p class="kick">What the industry says</p>
       <div class="stats">
-        <div class="stat"><div class="v">#2</div><div class="l">« Sensitive Information Disclosure » — en hausse</div><div class="s">OWASP LLM Top 10 2025</div></div>
-        <div class="stat"><div class="v">8,5 %</div><div class="l">des prompts de production contiennent du sensible</div><div class="s">étude 2024</div></div>
-        <div class="stat"><div class="v">15 M€</div><div class="l">amende RGPD contre un fournisseur LLM</div><div class="s">Garante, 2024</div></div>
-        <div class="stat"><div class="v">670 k$</div><div class="l">coût moyen d'un incident « shadow AI »</div><div class="s">IBM, 2025</div></div>
-        <div class="stat"><div class="v">40 %</div><div class="l">des fichiers envoyés à des chatbots contiennent PII/PCI</div><div class="s">LayerX</div></div>
-        <div class="stat"><div class="v">≈ 0</div><div class="l">un LLM « anonyme » seulement si l'extraction est « insignifiante »</div><div class="s">EDPB, 2025</div></div>
+        <div class="stat"><div class="v">#2</div><div class="l">"Sensitive Information Disclosure" — on the rise</div><div class="s">OWASP LLM Top 10 2025</div></div>
+        <div class="stat"><div class="v">8.5%</div><div class="l">of production prompts contain sensitive data</div><div class="s">2024 study</div></div>
+        <div class="stat"><div class="v">€15M</div><div class="l">GDPR fine against an LLM provider</div><div class="s">Garante, 2024</div></div>
+        <div class="stat"><div class="v">$670k</div><div class="l">average cost of a "shadow AI" incident</div><div class="s">IBM, 2025</div></div>
+        <div class="stat"><div class="v">40%</div><div class="l">of files sent to chatbots contain PII/PCI</div><div class="s">LayerX</div></div>
+        <div class="stat"><div class="v">≈ 0</div><div class="l">an LLM is "anonymous" only if extraction is "insignificant"</div><div class="s">EDPB, 2025</div></div>
       </div>
     </div></section>
 
     <!-- 7 — benchmark moteur -->
     <section class="slide"><div class="inner">
-      <p class="kick">Moteur FR — mesuré (corpus 46 PII)</p>
-      <h2>Détecter le français, là où les autres sont aveugles</h2>
+      <p class="kick">FR engine — measured (46 PII corpus)</p>
+      <h2>Detecting French, where others are blind</h2>
       <div class="bars">
-        <div class="bar"><div class="name">hoop · Alcatraz<small>défaut</small></div><div class="track2"><div class="fill f-lo"></div></div><div class="val">0,35</div></div>
-        <div class="bar"><div class="name">hoop · Presidio<small>anglais</small></div><div class="track2"><div class="fill f-mid"></div></div><div class="val">0,87</div></div>
-        <div class="bar"><div class="name" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="track2"><div class="fill f-hi"></div></div><div class="val" style="color:var(--mint)">1,00</div></div>
+        <div class="bar"><div class="name">hoop · Alcatraz<small>default</small></div><div class="track2"><div class="fill f-lo"></div></div><div class="val">0.35</div></div>
+        <div class="bar"><div class="name">hoop · Presidio<small>English</small></div><div class="track2"><div class="fill f-mid"></div></div><div class="val">0.87</div></div>
+        <div class="bar"><div class="name" style="color:var(--violet)">d9 PII Protect<small>FR-first</small></div><div class="track2"><div class="fill f-hi"></div></div><div class="val" style="color:var(--mint)">1.00</div></div>
       </div>
-      <p class="sub">Identifiants français — <strong>NIR, SIREN, SIRET</strong> : les autres <span style="color:var(--clay);font-weight:700">0</span>, nous <span class="mintc" style="font-weight:700">26 / 26</span>.</p>
+      <p class="sub">French identifiers — <strong>NIR, SIREN, SIRET</strong>: others <span style="color:var(--clay);font-weight:700">0</span>, us <span class="mintc" style="font-weight:700">26 / 26</span>.</p>
       <div class="mini" id="s7"></div>
-      <div class="foot">Détections réelles · comparateur complet → grouzoul.github.io/d9-pii-protect/comparator.html</div>
+      <div class="foot">Real detections · full comparator → grouzoul.github.io/d9-pii-protect/comparator.html</div>
     </div></section>
 
     <!-- 8 — comment ça marche -->
     <section class="slide"><div class="inner">
-      <p class="kick">Comment ça marche</p>
+      <p class="kick">How it works</p>
       <div class="flow">
-        <div class="node"><div class="t">Agent IA</div><div class="b">GET /items, /assets</div></div>
+        <div class="node"><div class="t">AI agent</div><div class="b">GET /items, /assets</div></div>
         <div class="arrow">→</div>
         <div class="node"><div class="t">d9</div><div class="b">RBAC + hook</div></div>
         <div class="arrow">→</div>
-        <div class="node hl"><div class="t">Moteur FR</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
+        <div class="node hl"><div class="t">FR engine</div><div class="b">Presidio · CamemBERT / Anonym-IA</div></div>
         <div class="arrow">→</div>
-        <div class="node"><div class="t">Agent reçoit</div><div class="b">[[PII:…]] chiffré</div></div>
+        <div class="node"><div class="t">Agent receives</div><div class="b">[[PII:…]] encrypted</div></div>
       </div>
       <ul class="feat">
-        <li>Lecture <em>et</em> écriture (round-trip réversible)</li>
-        <li>Champs BDD <em>et</em> fichiers (.docx / .txt)</li>
-        <li>Validation humaine (lien par email)</li>
-        <li>Fail-closed · déployé chez vous</li>
+        <li>Read <em>and</em> write (reversible round-trip)</li>
+        <li>DB fields <em>and</em> files (.docx / .txt)</li>
+        <li>Human validation (link by email)</li>
+        <li>Fail-closed · deployed on your side</li>
       </ul>
       <div class="mini">
-        <div class="mtog"><button id="s8h" onclick="s8('human')">👤 Humain</button><button id="s8a" onclick="s8('agent')">🤖 Agent IA</button></div>
+        <div class="mtog"><button id="s8h" onclick="s8('human')">👤 Human</button><button id="s8a" onclick="s8('agent')">🤖 AI agent</button></div>
         <div class="mcard" id="s8card"></div>
       </div>
     </div></section>
 
     <!-- 9 — chaîne de valeur -->
     <section class="slide"><div class="inner">
-      <p class="kick">La chaîne de valeur</p>
-      <h2>Trois briques complémentaires</h2>
+      <p class="kick">The value chain</p>
+      <h2>Three complementary building blocks</h2>
       <div class="chain">
-        <div class="brick"><h3>d9</h3><p>Vos bases → des API gouvernées, avec RBAC et tokens.</p></div>
-        <div class="brick p"><h3>PII Protect</h3><p>Anonymisation FR réversible du contenu, par rôle.</p></div>
-        <div class="brick"><h3>Webcapsule</h3><p>Déploiement, dans l'environnement du client.</p></div>
+        <div class="brick"><h3>d9</h3><p>Your databases → governed APIs, with RBAC and tokens.</p></div>
+        <div class="brick p"><h3>PII Protect</h3><p>Reversible FR anonymization of content, by role.</p></div>
+        <div class="brick"><h3>Webcapsule</h3><p>Deployment, in the customer's environment.</p></div>
       </div>
-      <div class="foot">Souverain : données, modèle et clés ne sortent pas de chez vous.</div>
+      <div class="foot">Sovereign: data, model and keys never leave your premises.</div>
     </div></section>
 
     <!-- 10 — clôture -->
     <section class="slide"><div class="inner">
-      <p class="kick">Dès aujourd'hui</p>
-      <p class="big">Préparez vos métiers aux agents IA.<br>Sans jamais exposer vos clients.</p>
+      <p class="kick">Starting today</p>
+      <p class="big">Get your business teams ready for AI agents.<br>Without ever exposing your customers.</p>
       <div class="foot">support@webcapsule.io · grouzoul.github.io/d9-pii-protect</div>
     </div></section>
 
@@ -273,7 +273,7 @@
 <script>
   (function(){
     var PX=window.PII_EXAMPLES||[], PC=window.PII_COMPARE||[];
-    var LBL={PERSON:"Nom",PRENOM_PERSONNE:"Prénom",NOM_PERSONNE:"Nom",LOCATION:"Lieu",NOM_VOIE:"Adresse",VILLE:"Ville",CODE_POSTAL:"Code postal",FR_NIR:"NIR",NUM_SECURITE_SOCIALE:"NIR",IBAN_CODE:"IBAN",IBAN:"IBAN",PHONE_NUMBER:"Téléphone",TELEPHONE:"Téléphone",EMAIL_ADDRESS:"Email",EMAIL:"Email",SIREN:"SIREN",SIRET:"SIRET",CREDIT_CARD:"Carte",DATE_FR:"Date",DATE:"Date",DATE_TIME:"Date",IP_ADDRESS:"IP",ORGANIZATION:"Société",US_DRIVER_LICENSE:"Permis US"};
+    var LBL={PERSON:"Name",PRENOM_PERSONNE:"First name",NOM_PERSONNE:"Name",LOCATION:"Place",NOM_VOIE:"Address",VILLE:"City",CODE_POSTAL:"Postal code",FR_NIR:"NIR",NUM_SECURITE_SOCIALE:"NIR",IBAN_CODE:"IBAN",IBAN:"IBAN",PHONE_NUMBER:"Phone",TELEPHONE:"Phone",EMAIL_ADDRESS:"Email",EMAIL:"Email",SIREN:"SIREN",SIRET:"SIRET",CREDIT_CARD:"Card",DATE_FR:"Date",DATE:"Date",DATE_TIME:"Date",IP_ADDRESS:"IP",ORGANIZATION:"Company",US_DRIVER_LICENSE:"US license"};
     function lab(t){return LBL[t]||t;}
     function esc(s){return s.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
     function chip(l){return '<span class="pii">🔒 '+lab(l)+'</span>';}
@@ -285,7 +285,7 @@
     };
     function s7(){
       var ex=PC[0],el=document.getElementById('s7'); if(!ex||!el)return;
-      var engs=[['ours','d9 PII Protect','FR-first'],['presidio','Presidio','anglais'],['alcatraz','Hoop · Alcatraz','défaut']];
+      var engs=[['ours','d9 PII Protect','FR-first'],['presidio','Presidio','English'],['alcatraz','Hoop · Alcatraz','default']];
       el.innerHTML=engs.map(function(e){
         var c=ex.caught[e[0]],n=c.filter(Boolean).length,t=ex.text,pos=0,html='';
         ex.spans.forEach(function(sp,i){var s=t.indexOf(sp.v,pos);if(s<0)s=pos;html+=esc(t.slice(pos,s));html+=c[i]?chip(sp.label):'<span class="leak">'+esc(sp.v)+'</span>';pos=s+sp.v.length;});

@@ -1,9 +1,9 @@
-"""NER FR (transformers) exposé comme recognizer Presidio.
+"""French NER (transformers) exposed as a Presidio recognizer.
 
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  CHANGER LE MODÈLE NER ICI  ->  env PII_NER_MODEL  (voir MODELS.md)        ║
-║  Défaut : Anonym-IA (CamemBERT PII FR). Chargé une fois au démarrage.       ║
-║  Si tu changes de modèle : adapte LABELS à son jeu d'entités.              ║
+║  CHANGE THE NER MODEL HERE  ->  env PII_NER_MODEL  (see MODELS.md)         ║
+║  Default: Anonym-IA (CamemBERT PII FR). Loaded once at startup.             ║
+║  If you switch models: adapt LABELS to its entity set.                     ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 import os
@@ -12,7 +12,7 @@ from presidio_analyzer import EntityRecognizer, RecognizerResult
 MODEL = os.environ.get("PII_NER_MODEL", "Anonym-IA/V2-camembert-ner-pii-french")
 THRESHOLD = float(os.environ.get("PII_NER_THRESHOLD", "0.4"))
 
-# Jeu de labels du modèle (Anonym-IA). À ADAPTER si on change de modèle.
+# Entity set of the model (Anonym-IA). ADAPT this if you switch models.
 LABELS = [
     "ACCOUNTNUMBER", "AGE", "AMOUNT", "BITCOINADDRESS", "CODE_POSTAL", "COUNTRY", "CREDITCARD",
     "CURRENCY", "DATE", "DOB", "EMAIL", "ETHEREUMADDRESS", "EYECOLOR", "GENDER", "HEIGHT", "IBAN",

@@ -1,33 +1,35 @@
-# Moteur PII Protect (sidecar)
+# PII Protect engine (sidecar)
 
-Service auto-suffisant qui **détecte** les PII d'un texte/document/image et les **chiffre
-(réversible)** ou **caviarde (images)**. Réutilisable par n'importe quel service, pas seulement d9.
+A self-contained service that **detects** PII in a text/document/image and **encrypts
+(reversible)** or **redacts (images)** it. Reusable by any service, not just d9.
 
-## Ce qu'il y a dedans
+## What's inside
 
-| Fichier | Rôle |
+| File | Role |
 |---|---|
-| `app.py` | Serveur HTTP (stdlib) + endpoints. |
-| `analyzer.py` | Orchestration **Presidio** : tokenizer spaCy FR vide + NER + recognizers regex, dédoublonnage par score. |
-| `ner.py` | Le **modèle NER** exposé en recognizer Presidio. ← *changer de modèle ici / via `PII_NER_MODEL`*. |
-| `recognizers.py` | Les **regex + checksums** (SIREN/SIRET/IBAN/NIR…). ← *ajouter une regex ici*. |
-| `crypto.py` | Chiffrement **AES-256-GCM** + marqueurs `[[PII:TYPE:b64]]`. |
-| `image_redact.py` | **Caviardage d'images** (Presidio Image Redactor + notre analyzer FR + Tesseract OCR). |
-| `MODELS.md` | Répertoire de modèles NER par langue (liens HuggingFace) pour swapper. |
+| `app.py` | HTTP server (stdlib) + endpoints. |
+| `analyzer.py` | **Presidio** orchestration: blank FR spaCy tokenizer + NER + regex recognizers, dedup by score. |
+| `ner.py` | The **NER model** exposed as a Presidio recognizer. ← *change the model here / via `PII_NER_MODEL`*. |
+| `recognizers.py` | The **regex + checksums** (SIREN/SIRET/IBAN/NIR…). ← *add a regex here*. |
+| `crypto.py` | **AES-256-GCM** encryption + `[[PII:TYPE:b64]]` markers. |
+| `image_redact.py` | **Image/PDF redaction** (Presidio Image Redactor + our FR analyzer + Tesseract OCR). |
+| `MODELS.md` | Directory of NER models per language (Hugging Face links) for switching. |
 
 ## Endpoints
 
 ```
-POST /anonymize      {text}                  -> {text, count, entities}   # chiffre
-POST /rehydrate      {text}                  -> {text, count}             # déchiffre
+POST /anonymize      {text}                  -> {text, count, entities}   # encrypt
+POST /encrypt        {text}                  -> {text, count}             # encrypt the whole value
+POST /rehydrate      {text}                  -> {text, count}             # decrypt
 POST /anonymize-doc  {filename, content_b64} -> {filename, content_b64}   # .txt/.md/.csv/.json/.docx
 POST /rehydrate-doc  {filename, content_b64} -> {filename, content_b64}
-POST /redact-image   {filename, content_b64} -> {filename, content_b64}   # caviardage (destructif)
+POST /redact-image   {filename, content_b64} -> {filename, content_b64}   # redaction (destructive)
+POST /redact-pdf     {filename, content_b64} -> {filename, content_b64}   # PDF redaction (destructive)
 POST /detect         {text}                  -> {spans:[{start,end,type,text}]}
 GET  /health
 ```
 
-## Lancer (Docker)
+## Run (Docker)
 
 ```bash
 docker build -t ecluse-engine:latest .
@@ -35,19 +37,19 @@ docker run --rm -p 8077:8077 -e PII_PROTECT_KEY=$(openssl rand -base64 32) eclus
 curl -s localhost:8077/health
 ```
 
-Variables : voir le [README racine](../README.md#configuration-variables-denvironnement).
+Variables: see the [root README](../README.md#configuration-environment-variables).
 
-## Ajouter un recognizer regex
+## Add a regex recognizer
 
-Dans `recognizers.py` :
-- **sans checksum** : une ligne dans `SIMPLE` → `(ENTITÉ, regex, score, [mots de contexte])`.
-  Les mots de contexte montent le score si présents à proximité (fonctionnalité Presidio).
-- **avec checksum** (validation type Luhn/mod-97) : un `_Checksum(...)` dans `build_recognizers()`.
+In `recognizers.py`:
+- **without checksum**: one line in `SIMPLE` → `(ENTITY, regex, score, [context words])`.
+  Context words raise the score when present nearby (a Presidio feature).
+- **with checksum** (Luhn/mod-97 validation): one `_Checksum(...)` in `build_recognizers()`.
 
-Réutilise le **vocabulaire de types du modèle NER** (voir `ner.py` `LABELS`) pour qu'il n'y ait
-qu'une seule liste de types à connaître côté config (`PII_PROTECT_SKIP`, etc.).
+Reuse the **type vocabulary of the NER model** (see `ner.py` `LABELS`) so there is a single list of
+types to know about on the config side (`PII_PROTECT_SKIP`, etc.).
 
-## Changer le modèle NER / de langue
+## Change the NER model / language
 
-`PII_NER_MODEL=<hf/model>` (au build : `--build-arg PII_NER_MODEL=...` pour le baker dans l'image).
-Adapter `LABELS` dans `ner.py` au jeu d'entités du nouveau modèle. Candidats par langue : `MODELS.md`.
+`PII_NER_MODEL=<hf/model>` (at build time: `--build-arg PII_NER_MODEL=...` to bake it into the image).
+Adapt `LABELS` in `ner.py` to the new model's entity set. Candidates per language: `MODELS.md`.
