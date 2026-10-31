@@ -8,8 +8,8 @@ hr(){ printf '\n\033[1;35m== %s ==\033[0m\n' "$1"; }
 
 tok(){ curl -s -X POST "$B/auth/login" -H 'Content-Type: application/json' -d "$1" \
        | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['access_token'])"; }
-ADM=$(tok '{"email":"admin@ecluse.io","password":"ecluse-admin"}')
-AGT=$(tok '{"email":"agent@ecluse.io","password":"agent-pwd"}')
+ADM=$(tok '{"email":"admin@example.com","password":"ecluse-admin"}')
+AGT=$(tok '{"email":"agent@example.com","password":"agent-pwd"}')
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
 hr "1) CHAMP TEXTE  (tickets.note, type 'text' — protégé sans aucune config)"

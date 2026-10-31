@@ -6,8 +6,8 @@ Secure-by-default : aucune config de champ à écrire — l'extension protège t
 import json, urllib.request, urllib.error
 
 BASE = "http://localhost:8055"
-ADMIN = ("admin@ecluse.io", "ecluse-admin")
-AGENT = ("agent@ecluse.io", "agent-pwd")
+ADMIN = ("admin@example.com", "ecluse-admin")
+AGENT = ("agent@example.com", "agent-pwd")
 
 def login(email, pwd):
     req = urllib.request.Request(f"{BASE}/auth/login",

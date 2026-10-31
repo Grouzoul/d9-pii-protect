@@ -43,7 +43,7 @@ python3 seed_ecluse.py          # collection tickets + rôle/user agent + toggle
 bash demo.sh                    # texte / document / image / type refusé / round-trip, agent vs humain
 ```
 
-Comptes de démo : `admin@ecluse.io` / `ecluse-admin` et `agent@ecluse.io` / `agent-pwd`.
+Comptes de démo : `admin@example.com` / `ecluse-admin` et `agent@example.com` / `agent-pwd`.
 
 ## Configuration (variables d'environnement)
 

@@ -30,7 +30,7 @@ services:
     environment:
       KEY: d9-pii-protect-key
       SECRET: d9-pii-protect-secret
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ecluse.io}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ecluse-admin}
       DB_CLIENT: sqlite3
       DB_FILENAME: /directus/database/data.db
