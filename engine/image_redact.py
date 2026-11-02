@@ -1,4 +1,4 @@
-"""Image redaction — Presidio Image Redactor + OUR French analyzer + Tesseract OCR.
+"""Image redaction — Presidio Image Redactor + our analyzer (FR by default) + Tesseract OCR.
 
 Unlike text/documents (REVERSIBLE marker-based encryption), image redaction is DESTRUCTIVE:
 PII regions are masked with rectangles. The stored file stays intact — the agent receives a

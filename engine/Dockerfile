@@ -22,7 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    # presidio-image-redactor pulls opencv-python (GUI/libGL); replace it with the headless variant (server).
+    # presidio-image-redactor depends on opencv-python, whose GUI modules (cv2.imshow…) need the system
+    # library libGL — absent on a headless server. opencv-python-headless is the same library without the
+    # GUI parts: no libGL needed, smaller image, identical image processing. So we swap one for the other.
     && pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null; \
     pip install --no-cache-dir opencv-python-headless
 

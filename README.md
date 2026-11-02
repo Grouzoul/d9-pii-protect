@@ -35,9 +35,12 @@ docker compose up -d --build    # builds the engine + starts d9
 
 ### See the demo (optional)
 
+The demo scaffolding lives in [`examples/`](examples/) (it creates a sample `tickets` collection — for
+trying it out, **not** something to run against a real d9):
+
 ```bash
-python3 seed_ecluse.py          # tickets collection + agent role/user + is_agent toggle (from the repo root)
-bash demo.sh                    # text / document / image / refused type / round-trip, agent vs human
+python3 examples/seed_ecluse.py   # sample tickets collection + agent role/user
+bash examples/demo.sh             # text / document / image / refused type / round-trip, agent vs human
 ```
 
 Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `agent-pwd`.

@@ -12,7 +12,7 @@ A self-contained service that **detects** PII in a text/document/image and **enc
 | `ner.py` | The **NER model** exposed as a Presidio recognizer. ← *change the model here / via `PII_NER_MODEL`*. |
 | `recognizers.py` | The **regex + checksums** (SIREN/SIRET/IBAN/NIR…). ← *add a regex here*. |
 | `crypto.py` | **AES-256-GCM** encryption + `[[PII:TYPE:b64]]` markers. |
-| `image_redact.py` | **Image/PDF redaction** (Presidio Image Redactor + our FR analyzer + Tesseract OCR). |
+| `image_redact.py` | **Image/PDF redaction** (Presidio Image Redactor + our analyzer, FR by default + Tesseract OCR). |
 | `MODELS.md` | Directory of NER models per language (Hugging Face links) for switching. |
 
 ## Endpoints
