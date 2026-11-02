@@ -8,14 +8,11 @@ user with an **"agent" role**, PII is **detected (FR engine) and reversibly encr
 or **redacted** (images); an **authorized human** sees the original. Re-identification is decided by
 d9 RBAC + key custody.
 
-> Measured on a FR corpus: **46/46 detection** (incl. FR identifiers NIR/SIREN/SIRET), where
-> hoop.dev/Alcatraz scores 16/46 and hoop.dev/Presidio-EN ~0 on French identifiers.
-
 ## Two-brick architecture
 
 - **`engine/`** — a **self-contained Docker sidecar**: [Presidio](https://microsoft.github.io/presidio/)
   (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french)
-  + regex/checksum recognizers (SIREN, SIRET, IBAN, NIR…) + our own **AES-256-GCM** encryption + image
+  + regex/checksum recognizers (SIREN, SIRET, IBAN, NIR…) + **AES-256-GCM** encryption + image
   redaction (Tesseract OCR). **One engine per environment** (confinement — no central proxy).
 - **`extension/`** — the **one-click integration into d9**: a per-role hook + a single UI addition (the
   `is_agent` toggle on the role definition). Fully **environment-driven**.
@@ -59,7 +56,7 @@ Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `a
 | `PII_OCR_LANG` | engine | Tesseract language for image redaction. | `fra` |
 
 **Secure-by-default**: with no configuration, everything accessible to an agent role is protected
-(text fields, documents, images). You restrict *afterwards*, not the other way around.
+(text fields, documents, images) by default.
 
 ## Customization (points flagged in the code)
 
@@ -70,7 +67,7 @@ Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `a
 
 ## Roadmap
 
-- [ ] **Human-in-the-loop (HITL)** — approval workflow for re-identification (phase 2, possibly paid).
+- [ ] **Human-in-the-loop (HITL)** — approval workflow for re-identification using d9 MFA.
 - [ ] **Key rotation** + token validity window; custody via KMS/HSM.
 - [ ] **PDF** (text and scanned) — currently redacted page-by-page; a text-layer path could be added.
 - [ ] **Optional deterministic mode** (same input → same token) for cross-call correlation.
