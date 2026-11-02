@@ -57,9 +57,8 @@ def main():
     else:
         print("= tickets collection exists")
 
-    # The extension's control surface on directus_roles. Shown on the role page, grouped under a
-    # collapsible "PII Encryption" accordion (the header you unfold): a top "Encrypt all" toggle, and —
-    # only when it's OFF — a dropdown of the real collections to check which ones to anonymize.
+    # The extension's control surface on directus_roles, shown on the role page: an "Encrypt all" toggle
+    # and — only when it's OFF (conditional display) — checkboxes to pick the collections to anonymize.
     role_fields = {f["field"] for f in api("GET", "/fields/directus_roles", t)["data"]}
     def upsert_field(name, body):
         if name in role_fields:
@@ -67,26 +66,25 @@ def main():
             print(f"= {name} updated")
         else:
             api("POST", "/fields/directus_roles", t, body); print(f"+ {name} field")
+    if "pii_encryption" in role_fields:  # drop the old accordion group if present
+        api("DELETE", "/fields/directus_roles/pii_encryption", t); print("- pii_encryption group removed")
 
-    # 1) the "chapeau": a collapsible group (alias field, holds no data)
-    upsert_field("pii_encryption", {
-        "field": "pii_encryption", "type": "alias",
-        "meta": {"interface": "group-detail", "special": ["alias", "no-data", "group"],
-                 "options": {"start": "closed"}, "note": "Which data this role sees anonymized."}})
-    # 2) the toggle, inside the group
+    # 1) the toggle
     upsert_field("pii_encrypt_all", {
         "field": "pii_encrypt_all", "type": "boolean",
-        "meta": {"interface": "boolean", "special": ["cast-boolean"], "group": "pii_encryption", "width": "full",
+        "meta": {"interface": "boolean", "special": ["cast-boolean"], "width": "full",
                  "options": {"label": "Encrypt all collections for this role"},
                  "note": "Shortcut: anonymize PII everywhere. Turn OFF to pick collections below."},
         "schema": {"default_value": False}})
-    # 3) per-collection checkboxes — real collections as choices, hidden when "encrypt all" is ON
+    # 2) per-collection checkboxes — real collections as choices, hidden when "encrypt all" is ON
+    # All collections the API lists (user + Directus system ones, e.g. directus_users / directus_files),
+    # so the admin can pick any. (Only `text`-type fields get anonymized; system collections whose PII is
+    # in `string` fields — like directus_users — are a known limitation, see README.)
     allcols = {c["collection"] for c in api("GET", "/collections", t)["data"]} | {"directus_files"}
-    choices = [{"text": c, "value": c} for c in sorted(allcols)
-               if c == "directus_files" or not c.startswith("directus_")]
+    choices = [{"text": c, "value": c} for c in sorted(allcols)]
     upsert_field("pii_encrypt_collections", {
         "field": "pii_encrypt_collections", "type": "csv",
-        "meta": {"interface": "select-multiple-checkbox", "group": "pii_encryption", "width": "full",
+        "meta": {"interface": "select-multiple-checkbox", "width": "full",
                  "options": {"choices": choices},
                  "note": "Collections to anonymize for this role.",
                  "conditions": [{"name": "Hidden when encrypt-all is on",
