@@ -42,7 +42,7 @@ flowchart LR
 
 | Brick | Role | Tech | Repo contents |
 |---|---|---|---|
-| **Engine** (`engine/`) | Detects PII in a text and encrypts/decrypts it. Reusable by any service, not just d9. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + regex/checksum recognizers + our own AES-256-GCM | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `image_redact.py`, `MODELS.md` |
+| **Engine** (`engine/`) | Detects PII in a text and encrypts/decrypts it. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + regex/checksum recognizers + AES-256-GCM | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `image_redact.py`, `MODELS.md` |
 | **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for "agent" roles, rehydrates on write, and for authorized humans. | TypeScript (Directus hook) | `src/index.ts`, `dist/index.js` |
 | **Deploy** (`deploy/`) | Reference stack wiring the two together. | docker-compose | `docker-compose.yml`, `.env.example` |
 
@@ -68,7 +68,7 @@ flowchart LR
   (`PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`).
 - **Reversible encryption, not masking**: we re-identify for authorized humans. Key custody
   (`PII_PROTECT_KEY`) **is** the security boundary.
-- **Embedded Presidio, not from scratch**: we reuse its recognizer registry and context scoring
+- **Embedded Presidio**: reuse its recognizer registry and context scoring
   (which disambiguates e.g. SIREN vs NIR), and keep **our own** encryption (Presidio's unsalted
   `hash` is insufficient).
 - **One engine per environment**: confinement. No central proxy through which every environment's
