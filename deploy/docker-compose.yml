@@ -19,6 +19,9 @@ services:
       PII_PROTECT_SKIP: ${PII_PROTECT_SKIP:-}           # deny-list (these types stay in clear)
       PII_NER_MODEL: ${PII_NER_MODEL:-Anonym-IA/V2-camembert-ner-pii-french}
       PII_NER_THRESHOLD: ${PII_NER_THRESHOLD:-0.4}
+      # NER runs on ONNX Runtime. Threads: empty = auto; cap to your PHYSICAL/perf-core count on
+      # heterogeneous CPUs (e.g. Apple Silicon: 4) to avoid oversubscription. Tune per host.
+      PII_NER_ONNX_THREADS: ${PII_NER_ONNX_THREADS:-}
     # Not publicly exposed: only d9 (internal network) talks to the engine. Uncomment for local debug.
     # ports: ["8077:8077"]
     restart: unless-stopped

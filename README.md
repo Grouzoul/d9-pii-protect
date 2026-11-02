@@ -52,6 +52,7 @@ Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `a
 | `PII_PROTECT_ENTITIES` | engine | Allow-list: only these PII types are encrypted. | *(empty = all)* |
 | `PII_PROTECT_SKIP` | engine | Deny-list: these types stay in clear. | *(empty)* |
 | `PII_NER_MODEL` | engine | Hugging Face NER model (see [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
+| `PII_NER_BACKEND` | engine | `onnx` (ONNX Runtime, ~30% faster, same results) or `torch`. | `onnx` |
 | `PII_NER_THRESHOLD` | engine | NER confidence threshold. | `0.4` |
 | `PII_OCR_LANG` | engine | Tesseract language for image redaction. | `fra` |
 
