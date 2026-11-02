@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /engine
 
-# build-essential + Tesseract OCR FR + poppler (PDF rendering for redaction). No libGL: opencv-python-headless.
+# build-essential + Tesseract OCR FR + poppler (PDF rendering for redaction).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential tesseract-ocr tesseract-ocr-fra libglib2.0-0 poppler-utils \
     && rm -rf /var/lib/apt/lists/*
