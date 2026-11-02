@@ -82,13 +82,18 @@ def main():
     allcols = {c["collection"] for c in api("GET", "/collections", t)["data"]} | {"directus_files"}
     choices = [{"text": c, "value": c} for c in sorted(allcols)
                if c == "directus_files" or not c.startswith("directus_")]
-    upsert_field("pii_encrypt_collections", {
-        "field": "pii_encrypt_collections", "type": "csv",
-        "meta": {"interface": "select-multiple-checkbox", "width": "full",
+    # type json (stores a real array) so select-multiple-checkbox round-trips in the UI. Recreate to fix
+    # the column type if the field already exists with another type.
+    if "pii_encrypt_collections" in role_fields:
+        api("DELETE", "/fields/directus_roles/pii_encrypt_collections", t)
+    api("POST", "/fields/directus_roles", t, {
+        "field": "pii_encrypt_collections", "type": "json",
+        "meta": {"interface": "select-multiple-checkbox", "special": ["cast-json"], "width": "full",
                  "options": {"choices": choices},
                  "note": "Collections to anonymize for this role.",
                  "conditions": [{"name": "Hidden when encrypt-all is on",
                                  "rule": {"pii_encrypt_all": {"_eq": True}}, "hidden": True}]}})
+    print("+ pii_encrypt_collections field (json)")
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
