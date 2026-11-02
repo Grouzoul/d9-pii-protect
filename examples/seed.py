@@ -57,31 +57,40 @@ def main():
     else:
         print("= tickets collection exists")
 
-    # The extension's control surface: two opt-in fields on directus_roles. They show up on the role
-    # detail page (Settings -> Roles & Permissions -> a role), below the permissions grid.
+    # The extension's control surface on directus_roles. Shown on the role page, grouped under a
+    # collapsible "PII Encryption" accordion (the header you unfold): a top "Encrypt all" toggle, and —
+    # only when it's OFF — a dropdown of the real collections to check which ones to anonymize.
     role_fields = {f["field"] for f in api("GET", "/fields/directus_roles", t)["data"]}
-    if "pii_encrypt_all" not in role_fields:
-        api("POST", "/fields/directus_roles", t, {
-            "field": "pii_encrypt_all", "type": "boolean",
-            "meta": {"interface": "boolean", "special": ["cast-boolean"], "width": "half",
-                     "note": "Anonymize PII in ALL collections for this role (shortcut for 'encrypt everything')."},
-            "schema": {"default_value": False},
-        }); print("+ pii_encrypt_all field on directus_roles")
-    # Choices = the real collections (user ones + directus_files for file anonymization), so the admin
-    # picks from a dropdown of checkboxes instead of typing raw keys. Snapshot at setup time:
-    # re-run this to refresh the list after adding collections (a live picker = the future app-extension UI).
+    def upsert_field(name, body):
+        if name in role_fields:
+            api("PATCH", f"/fields/directus_roles/{name}", t, {k: v for k, v in body.items() if k != "field"})
+            print(f"= {name} updated")
+        else:
+            api("POST", "/fields/directus_roles", t, body); print(f"+ {name} field")
+
+    # 1) the "chapeau": a collapsible group (alias field, holds no data)
+    upsert_field("pii_encryption", {
+        "field": "pii_encryption", "type": "alias",
+        "meta": {"interface": "group-detail", "special": ["alias", "no-data", "group"],
+                 "options": {"start": "closed"}, "note": "Which data this role sees anonymized."}})
+    # 2) the toggle, inside the group
+    upsert_field("pii_encrypt_all", {
+        "field": "pii_encrypt_all", "type": "boolean",
+        "meta": {"interface": "boolean", "special": ["cast-boolean"], "group": "pii_encryption", "width": "full",
+                 "options": {"label": "Encrypt all collections for this role"},
+                 "note": "Shortcut: anonymize PII everywhere. Turn OFF to pick collections below."},
+        "schema": {"default_value": False}})
+    # 3) per-collection checkboxes — real collections as choices, hidden when "encrypt all" is ON
     allcols = {c["collection"] for c in api("GET", "/collections", t)["data"]} | {"directus_files"}
     choices = [{"text": c, "value": c} for c in sorted(allcols)
                if c == "directus_files" or not c.startswith("directus_")]
-    col_meta = {"interface": "select-multiple-dropdown", "width": "full",
-                "options": {"choices": choices, "allowOther": True},
-                "note": "Collections to anonymize for this role (per-collection). Ignored if 'encrypt all' is on."}
-    if "pii_encrypt_collections" not in role_fields:
-        api("POST", "/fields/directus_roles", t, {"field": "pii_encrypt_collections", "type": "csv", "meta": col_meta})
-        print("+ pii_encrypt_collections field on directus_roles")
-    else:  # refresh the collection choices on re-run
-        api("PATCH", "/fields/directus_roles/pii_encrypt_collections", t, {"meta": col_meta})
-        print("= pii_encrypt_collections choices refreshed")
+    upsert_field("pii_encrypt_collections", {
+        "field": "pii_encrypt_collections", "type": "csv",
+        "meta": {"interface": "select-multiple-checkbox", "group": "pii_encryption", "width": "full",
+                 "options": {"choices": choices, "allowOther": True},
+                 "note": "Collections to anonymize for this role.",
+                 "conditions": [{"name": "Hidden when encrypt-all is on",
+                                 "rule": {"pii_encrypt_all": {"_eq": True}}, "hidden": True}]}})
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
