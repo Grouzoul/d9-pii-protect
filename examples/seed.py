@@ -77,11 +77,11 @@ def main():
                  "note": "Shortcut: anonymize PII everywhere. Turn OFF to pick collections below."},
         "schema": {"default_value": False}})
     # 2) per-collection checkboxes — real collections as choices, hidden when "encrypt all" is ON
-    # All collections the API lists (user + Directus system ones, e.g. directus_users / directus_files),
-    # so the admin can pick any. (Only `text`-type fields get anonymized; system collections whose PII is
-    # in `string` fields — like directus_users — are a known limitation, see README.)
+    # User collections + directus_files (for file anonymization). System collections (other directus_*)
+    # are excluded, like the role permissions grid keeps them under a separate "System Collections" section.
     allcols = {c["collection"] for c in api("GET", "/collections", t)["data"]} | {"directus_files"}
-    choices = [{"text": c, "value": c} for c in sorted(allcols)]
+    choices = [{"text": c, "value": c} for c in sorted(allcols)
+               if c == "directus_files" or not c.startswith("directus_")]
     upsert_field("pii_encrypt_collections", {
         "field": "pii_encrypt_collections", "type": "csv",
         "meta": {"interface": "select-multiple-checkbox", "width": "full",
