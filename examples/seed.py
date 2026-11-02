@@ -87,7 +87,7 @@ def main():
     upsert_field("pii_encrypt_collections", {
         "field": "pii_encrypt_collections", "type": "csv",
         "meta": {"interface": "select-multiple-checkbox", "group": "pii_encryption", "width": "full",
-                 "options": {"choices": choices, "allowOther": True},
+                 "options": {"choices": choices},
                  "note": "Collections to anonymize for this role.",
                  "conditions": [{"name": "Hidden when encrypt-all is on",
                                  "rule": {"pii_encrypt_all": {"_eq": True}}, "hidden": True}]}})
