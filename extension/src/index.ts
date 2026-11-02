@@ -169,7 +169,10 @@ export default ({ filter, init, action }: any, { logger, database, services, get
       if (!endpoint) return res.status(415).send('[protected — unsupported file type]'); // nothing unknown leaks
       const out = await callFile(endpoint, name, Buffer.from(await orig.arrayBuffer()));
       res.setHeader('content-type', orig.headers.get('content-type') || 'application/octet-stream');
-      if (cdisp) res.setHeader('content-disposition', cdisp);
+      // Also encrypt the DOWNLOAD filename (not just the content) — otherwise the clear name leaks on save.
+      const encName = await callText('/encrypt', name);
+      const dispType = (cdisp.split(';')[0].trim() || 'attachment');
+      res.setHeader('content-disposition', dispType + "; filename*=UTF-8''" + encodeURIComponent(encName));
       res.send(out);
     }));
   });

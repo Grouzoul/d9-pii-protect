@@ -145,7 +145,9 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
       if (!endpoint) return res.status(415).send("[protected \u2014 unsupported file type]");
       const out = await callFile(endpoint, name, Buffer.from(await orig.arrayBuffer()));
       res.setHeader("content-type", orig.headers.get("content-type") || "application/octet-stream");
-      if (cdisp) res.setHeader("content-disposition", cdisp);
+      const encName = await callText("/encrypt", name);
+      const dispType = cdisp.split(";")[0].trim() || "attachment";
+      res.setHeader("content-disposition", dispType + "; filename*=UTF-8''" + encodeURIComponent(encName));
       res.send(out);
     }));
   });
