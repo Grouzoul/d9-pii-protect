@@ -6,7 +6,7 @@
 ║  Backend (env PII_NER_BACKEND):                                             ║
 ║    "onnx"  (default) -> ONNX Runtime, no PyTorch at runtime. The model is   ║
 ║              exported to ONNX at build time and baked at PII_NER_ONNX_DIR.   ║
-║              ~30% faster on CPU, identical detections (validated).          ║
+║              ~30% faster on CPU, identical detections.          ║
 ║    "torch" -> transformers/PyTorch pipeline (requires torch in the image).  ║
 ║  If you switch models: adapt LABELS to its entity set.                      ║
 ╚══════════════════════════════════════════════════════════════════════════╝
