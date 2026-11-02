@@ -1,7 +1,7 @@
 """Presidio orchestration (FR): blank spaCy tokenizer + NER (Anonym-IA) + regex recognizers.
 
 We reuse Presidio for what it does best (recognizer registry, context scoring, recognizer
-resolution) and keep OUR OWN encryption (crypto.py) for the anonymization step.
+resolution) and add own encryption (crypto.py) for the anonymization step (Presidio encryption is not salted).
 """
 import spacy
 from presidio_analyzer import AnalyzerEngine
