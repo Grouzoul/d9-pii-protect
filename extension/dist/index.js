@@ -32,19 +32,34 @@ function textFields(schema, collection) {
   const fields = schema?.collections?.[collection]?.fields || {};
   return Object.values(fields).filter((f) => f?.type === "text").map((f) => f.field);
 }
-const roleCache = /* @__PURE__ */ new Map();
-async function isAgent(database, roleId) {
-  if (!roleId) return false;
-  const hit = roleCache.get(roleId);
-  if (hit && Date.now() - hit.at < 1e4) return hit.v;
-  let v = false;
+function toList(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
   try {
-    v = !!(await database("directus_roles").select("is_agent").where({ id: roleId }).first())?.is_agent;
+    const j = JSON.parse(v);
+    if (Array.isArray(j)) return j;
   } catch {
   }
-  roleCache.set(roleId, { v, at: Date.now() });
-  return v;
+  return String(v).split(",").map((s) => s.trim()).filter(Boolean);
 }
+const roleCache = /* @__PURE__ */ new Map();
+async function roleConfig(database, roleId) {
+  if (!roleId) return { all: false, cols: /* @__PURE__ */ new Set(), at: 0 };
+  const hit = roleCache.get(roleId);
+  if (hit && Date.now() - hit.at < 1e4) return hit;
+  let all = false, cols = /* @__PURE__ */ new Set();
+  try {
+    const row = await database("directus_roles").select("pii_encrypt_all", "pii_encrypt_collections").where({ id: roleId }).first();
+    all = !!row?.pii_encrypt_all;
+    cols = new Set(toList(row?.pii_encrypt_collections));
+  } catch {
+  }
+  const cfg = { all, cols, at: Date.now() };
+  roleCache.set(roleId, cfg);
+  return cfg;
+}
+const anonymizes = (cfg, collection) => cfg.all || cfg.cols.has(collection);
+const anonymizesFiles = (cfg) => cfg.all || cfg.cols.has("directus_files");
 async function post(path, payload) {
   const r = await fetch(ENGINE + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
   if (!r.ok) throw new Error("engine HTTP " + r.status);
@@ -59,7 +74,9 @@ async function bufferStream(stream) {
 }
 var index_default = ({ filter, init, action }, { logger, database, services, getSchema }) => {
   filter("items.read", async (payload, meta, ctx) => {
-    if (!Array.isArray(payload) || !await isAgent(ctx?.database, ctx?.accountability?.role)) return payload;
+    if (!Array.isArray(payload)) return payload;
+    const cfg = await roleConfig(ctx?.database, ctx?.accountability?.role);
+    if (!anonymizes(cfg, meta.collection)) return payload;
     const fields = textFields(ctx?.schema, meta.collection);
     for (const item of payload) for (const f of fields) {
       if (typeof item?.[f] === "string" && item[f]) {
@@ -74,7 +91,10 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
     return payload;
   });
   const rehydrate = async (payload, meta, ctx) => {
-    for (const f of payload ? textFields(ctx?.schema, meta.collection) : []) {
+    if (!payload) return payload;
+    const cfg = await roleConfig(ctx?.database, ctx?.accountability?.role);
+    if (!anonymizes(cfg, meta.collection)) return payload;
+    for (const f of textFields(ctx?.schema, meta.collection)) {
       if (typeof payload[f] === "string" && payload[f].includes("[[PII:")) {
         try {
           payload[f] = await callText("/rehydrate", payload[f]);
@@ -90,12 +110,12 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
   init("routes.before", ({ app }) => {
     const guard = (deny, handle) => async (req, res, next) => {
       if (req.query.ecluse_bypass || req.headers["x-ecluse-bypass"]) return next();
-      let agent = false;
+      let on = false;
       try {
-        agent = await isAgent(database, req.accountability?.role);
+        on = anonymizesFiles(await roleConfig(database, req.accountability?.role));
       } catch {
       }
-      if (!agent) return next();
+      if (!on) return next();
       try {
         const sep = req.originalUrl.includes("?") ? "&" : "?";
         const orig = await fetch(SELF + req.originalUrl + sep + "ecluse_bypass=1", {
@@ -131,7 +151,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
   });
   action("files.upload", async (meta, ctx) => {
     try {
-      if (!await isAgent(database, ctx?.accountability?.role)) return;
+      if (!anonymizesFiles(await roleConfig(database, ctx?.accountability?.role))) return;
       const key = meta?.key || meta?.payload?.id || meta;
       if (typeof key !== "string") return;
       const schema = await getSchema();

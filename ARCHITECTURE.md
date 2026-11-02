@@ -8,7 +8,7 @@ prod): no central proxy, PII never leaves its environment (confinement principle
   ┌──────────────────────────────────────────────────────────────────────────┐
   │                                                                            │
   │   AI agent / API ─────────┐                                                │
-  │   (role "is_agent")        │  reads/writes items & files                   │
+  │   (anonymized role)        │  reads/writes items & files                   │
   │                            ▼                                                │
   │                    ┌───────────────┐   PII_PROTECT_ENGINE_URL   ┌────────┐ │
   │   Human ──────────▶│      d9       │ ─────────────────────────▶ │ ENGINE │ │
@@ -25,7 +25,7 @@ prod): no central proxy, PII never leaves its environment (confinement principle
 
 ```mermaid
 flowchart LR
-    agent["AI agent / API<br/>(is_agent role)"]
+    agent["AI agent / API<br/>(anonymized role)"]
     human["Human<br/>(authorized)"]
     d9["d9 (Directus 9)<br/>+ PII Protect extension<br/>(per-role hook)"]
     db[("Database<br/>PII in clear")]
@@ -48,8 +48,8 @@ flowchart LR
 
 ## The flow, step by step
 
-1. An **agent** (role with `is_agent = true`) reads an item. The d9 hook calls `POST /anonymize`
-   on the engine for each relevant free-text field.
+1. A user whose **role anonymizes that collection** (see Design decisions) reads an item. The d9 hook
+   calls `POST /anonymize` on the engine for each relevant free-text field.
 2. The engine **detects** PII (FR NER + regex + Presidio context scoring) and replaces each value
    with an encrypted marker `[[PII:TYPE:base64(nonce+ciphertext)]]`.
    → the agent **never** sees the clear value; a random nonce per value prevents any equality leak
@@ -62,10 +62,13 @@ flowchart LR
 
 ## Design decisions
 
-- **Secure-by-default**: without configuration, all `text`-type fields are protected for agent roles.
-  RBAC already covers structured fields; we cover the **free-text fields**, where unexpected PII can
-  slip in. You can then restrict by field (`PII_PROTECT_FIELDS`) and by PII type
-  (`PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`).
+- **Per role × collection, admin-controlled**: anonymization is a property of the role, set via two
+  fields on `directus_roles` (`pii_encrypt_all`, `pii_encrypt_collections`) — editable on the role page
+  like the other permissions, so **only users who can edit roles can change what is encrypted**. It applies
+  to **any role, humans included** (partial anonymization). RBAC covers structured fields; we cover the
+  **free-text fields** (and files), where unexpected PII slips in. Within a protected collection, all
+  `text` fields are covered by default — narrow with `PII_PROTECT_FIELDS`, choose types with
+  `PII_PROTECT_ENTITIES` / `PII_PROTECT_SKIP`.
 - **Reversible encryption, not masking**: we re-identify for authorized humans. Key custody
   (`PII_PROTECT_KEY`) **is** the security boundary.
 - **Embedded Presidio**: reuse its recognizer registry and context scoring

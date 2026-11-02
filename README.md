@@ -14,8 +14,9 @@ d9 RBAC + key custody.
   (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french)
   + regex/checksum recognizers (SIREN, SIRET, IBAN, NIR…) + **AES-256-GCM** encryption + image
   redaction (Tesseract OCR). **One engine per environment** (confinement — no central proxy).
-- **`extension/`** — the **one-click integration into d9**: a per-role hook + a single UI addition (the
-  `is_agent` toggle on the role definition). Fully **environment-driven**.
+- **`extension/`** — the **one-click integration into d9**: a hook driven by **per-role × per-collection**
+  config, editable from the d9 role page (like the other permissions). Applies to **any role, humans
+  included** (partial anonymization). Engine URL etc. stay **environment-driven**.
 
 Details and diagram: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
@@ -30,8 +31,10 @@ docker compose up -d --build    # builds the engine + starts d9
 ```
 
 - d9: http://localhost:8055 (admin defined in `.env`)
-- Put a role in agent mode: set `is_agent = true` on the role (boolean field on `directus_roles`).
-  → **secure-by-default**: every `text` field and every file accessible to that role is protected.
+- Choose what a role sees anonymized on its **role page** (Settings → Roles & Permissions → a role), via two
+  fields the extension reads: **`pii_encrypt_all`** (toggle: anonymize every collection) and
+  **`pii_encrypt_collections`** (pick collections). Changing them needs role-edit rights, so a regular user
+  can't alter what's encrypted — same access control as the other permissions.
 
 ### See the demo (optional)
 
@@ -51,7 +54,7 @@ Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `a
 |---|---|---|---|
 | `PII_PROTECT_KEY` | engine | **AES-256 key** (secret/KMS in prod). Custody = the security boundary. | — (required) |
 | `PII_PROTECT_ENGINE_URL` | extension | URL of the sidecar engine. | `http://engine:8077` |
-| `PII_PROTECT_FIELDS` | extension | JSON `{collection:[fields]}` to restrict. Empty = **all `text` fields**. | *(empty)* |
+| `PII_PROTECT_FIELDS` | extension | JSON `{collection:[fields]}` to narrow **which fields** within a collection (the role config picks **which collections**). Empty = all `text` fields. | *(empty)* |
 | `PII_PROTECT_ENTITIES` | engine | Allow-list: only these PII types are encrypted. | *(empty = all)* |
 | `PII_PROTECT_SKIP` | engine | Deny-list: these types stay in clear. | *(empty)* |
 | `PII_NER_MODEL` | engine | Hugging Face NER model (see [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
@@ -59,8 +62,10 @@ Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `a
 | `PII_NER_THRESHOLD` | engine | NER confidence threshold. | `0.4` |
 | `PII_OCR_LANG` | engine | Tesseract language for image redaction. | `fra` |
 
-**Secure-by-default**: with no configuration, everything accessible to an agent role is protected
-(text fields, documents, images) by default.
+**Per role × collection**: a role anonymizes a collection when `pii_encrypt_all` is on, or that collection
+is listed in `pii_encrypt_collections`. When it applies, **everything** in scope (text fields, documents,
+images) is protected, and unknown file types are refused (fail-closed) — never a partial leak. The config
+lives on `directus_roles`, so only users who can edit roles can change it.
 
 ## Customization (points flagged in the code)
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Seed the PII Protect demo on the dedicated d9 (:8055).
 Collection tickets (note field = free text with FR PII), agent role + agent user,
-boolean field `is_agent` on roles (the toggle the extension reads) enabled on the agent role.
-Secure-by-default: no field config to write — the extension protects every `text` field.
+per-role config fields (pii_encrypt_all + pii_encrypt_collections) enabled on the agent role.
+Anonymization is per role x collection (editable from the d9 role page); here we turn on 'encrypt all'.
 (The sample ticket data is kept in French on purpose, to exercise the French PII engine.)"""
 import json, urllib.request, urllib.error
 
@@ -57,17 +57,22 @@ def main():
     else:
         print("= tickets collection exists")
 
-    # The toggle the extension reads: boolean field `is_agent` on roles (the only UI addition).
+    # The extension's control surface: two opt-in fields on directus_roles. They show up on the role
+    # detail page (Settings -> Roles & Permissions -> a role), below the permissions grid.
     role_fields = {f["field"] for f in api("GET", "/fields/directus_roles", t)["data"]}
-    if "is_agent" not in role_fields:
+    if "pii_encrypt_all" not in role_fields:
         api("POST", "/fields/directus_roles", t, {
-            "field": "is_agent", "type": "boolean",
-            "meta": {"interface": "boolean", "special": ["cast-boolean"],
-                     "note": "Filter/anonymize PII for this role (AI agents)."},
+            "field": "pii_encrypt_all", "type": "boolean",
+            "meta": {"interface": "boolean", "special": ["cast-boolean"], "width": "half",
+                     "note": "Anonymize PII in ALL collections for this role (shortcut for 'encrypt everything')."},
             "schema": {"default_value": False},
-        }); print("+ is_agent field on directus_roles")
-    else:
-        print("= is_agent field exists")
+        }); print("+ pii_encrypt_all field on directus_roles")
+    if "pii_encrypt_collections" not in role_fields:
+        api("POST", "/fields/directus_roles", t, {
+            "field": "pii_encrypt_collections", "type": "csv",
+            "meta": {"interface": "tags", "width": "full",
+                     "note": "Collections to anonymize for this role (per-collection). Ignored if 'encrypt all' is on."},
+        }); print("+ pii_encrypt_collections field on directus_roles")
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:
@@ -76,8 +81,8 @@ def main():
         role_id = api("POST", "/roles", t, {"name": "agent", "admin_access": False,
             "app_access": True, "description": "AI agent — reads tickets (PII content anonymized by PII Protect)."})["data"]["id"]
         print("+ agent role", role_id)
-    # Enable the is_agent toggle on the agent role.
-    api("PATCH", f"/roles/{role_id}", t, {"is_agent": True}); print("  is_agent = true")
+    # Demo: turn on "encrypt everything" for the agent role (equivalent to the old behavior).
+    api("PATCH", f"/roles/{role_id}", t, {"pii_encrypt_all": True}); print("  pii_encrypt_all = true")
 
     def perm(collection, action, fields):
         q = f"/permissions?filter[role][_eq]={role_id}&filter[collection][_eq]={collection}&filter[action][_eq]={action}"
@@ -108,7 +113,7 @@ def main():
     else:
         print("= tickets already present")
 
-    print("\nSeed done. Agent role =", role_id, "(is_agent active). Secure-by-default: no field to configure.")
+    print("\nSeed done. Agent role =", role_id, "(pii_encrypt_all = true). Edit roles in the d9 admin to anonymize per collection.")
 
 if __name__ == "__main__":
     main()
