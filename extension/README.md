@@ -17,7 +17,7 @@ this extension handles the PII content that field-level RBAC cannot see, delegat
    - `pii_encrypt_all` (boolean) — anonymize every collection for the role;
    - `pii_encrypt_collections` (csv/tags) — specific collections to anonymize.
    Editing them requires role-edit rights, so a regular user can't change what's encrypted. By default
-   (fields absent) the extension stays inert. See [`examples/seed_ecluse.py`](../examples/seed_ecluse.py).
+   (fields absent) the extension stays inert. See [`examples/seed.py`](../examples/seed.py).
 
 ## Configuration (environment variables)
 

@@ -7,7 +7,7 @@ Anonymization is per role x collection (editable from the d9 role page); here we
 import json, urllib.request, urllib.error
 
 BASE = "http://localhost:8055"
-ADMIN = ("admin@example.com", "ecluse-admin")
+ADMIN = ("admin@example.com", "admin-pwd")
 AGENT = ("agent@example.com", "agent-pwd")
 
 def login(email, pwd):
@@ -67,12 +67,21 @@ def main():
                      "note": "Anonymize PII in ALL collections for this role (shortcut for 'encrypt everything')."},
             "schema": {"default_value": False},
         }); print("+ pii_encrypt_all field on directus_roles")
+    # Choices = the real collections (user ones + directus_files for file anonymization), so the admin
+    # picks from a dropdown of checkboxes instead of typing raw keys. Snapshot at setup time:
+    # re-run this to refresh the list after adding collections (a live picker = the future app-extension UI).
+    allcols = {c["collection"] for c in api("GET", "/collections", t)["data"]} | {"directus_files"}
+    choices = [{"text": c, "value": c} for c in sorted(allcols)
+               if c == "directus_files" or not c.startswith("directus_")]
+    col_meta = {"interface": "select-multiple-dropdown", "width": "full",
+                "options": {"choices": choices, "allowOther": True},
+                "note": "Collections to anonymize for this role (per-collection). Ignored if 'encrypt all' is on."}
     if "pii_encrypt_collections" not in role_fields:
-        api("POST", "/fields/directus_roles", t, {
-            "field": "pii_encrypt_collections", "type": "csv",
-            "meta": {"interface": "tags", "width": "full",
-                     "note": "Collections to anonymize for this role (per-collection). Ignored if 'encrypt all' is on."},
-        }); print("+ pii_encrypt_collections field on directus_roles")
+        api("POST", "/fields/directus_roles", t, {"field": "pii_encrypt_collections", "type": "csv", "meta": col_meta})
+        print("+ pii_encrypt_collections field on directus_roles")
+    else:  # refresh the collection choices on re-run
+        api("PATCH", "/fields/directus_roles/pii_encrypt_collections", t, {"meta": col_meta})
+        print("= pii_encrypt_collections choices refreshed")
 
     roles = {r["name"]: r["id"] for r in api("GET", "/roles", t)["data"]}
     if "agent" in roles:

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # d9 PII Protect demo — secure-by-default across every entity an agent can access.
-# Prerequisites: the deploy/ stack running (docker compose up -d) + seed_ecluse.py executed.
+# Prerequisites: the deploy/ stack running (docker compose up -d) + seed.py executed.
 # Uses only d9's public API (:8055) and python3. No machine-specific dependency.
 set -euo pipefail
 B="${D9_URL:-http://localhost:8055}"
@@ -8,7 +8,7 @@ hr(){ printf '\n\033[1;35m== %s ==\033[0m\n' "$1"; }
 
 tok(){ curl -s -X POST "$B/auth/login" -H 'Content-Type: application/json' -d "$1" \
        | python3 -c "import sys,json;print(json.load(sys.stdin)['data']['access_token'])"; }
-ADM=$(tok '{"email":"admin@example.com","password":"ecluse-admin"}')
+ADM=$(tok '{"email":"admin@example.com","password":"admin-pwd"}')
 AGT=$(tok '{"email":"agent@example.com","password":"agent-pwd"}')
 DIR="$(cd "$(dirname "$0")" && pwd)"
 

@@ -42,11 +42,11 @@ The demo scaffolding lives in [`examples/`](examples/) (it creates a sample `tic
 trying it out, **not** something to run against a real d9):
 
 ```bash
-python3 examples/seed_ecluse.py   # sample tickets collection + agent role/user
+python3 examples/seed.py   # sample tickets collection + agent role/user
 bash examples/demo.sh             # text / document / image / refused type / round-trip, agent vs human
 ```
 
-Demo accounts: `admin@example.com` / `ecluse-admin` and `agent@example.com` / `agent-pwd`.
+Demo accounts: `admin@example.com` / `admin-pwd` and `agent@example.com` / `agent-pwd`.
 
 ## Configuration (environment variables)
 

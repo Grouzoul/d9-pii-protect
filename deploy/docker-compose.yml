@@ -10,7 +10,7 @@ services:
     build:
       context: ../engine
       # To swap the NER model at build time: args: { PII_NER_MODEL: "<hf/model>" } (see engine/MODELS.md)
-    image: ecluse-engine:latest
+    image: pii-protect-engine:latest
     environment:
       # ===== SECURITY: encryption key. In production, inject via a secret manager/KMS. =====
       PII_PROTECT_KEY: ${PII_PROTECT_KEY:?Set PII_PROTECT_KEY in .env}
@@ -34,7 +34,7 @@ services:
       KEY: d9-pii-protect-key
       SECRET: d9-pii-protect-secret
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ecluse-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-pwd}
       DB_CLIENT: sqlite3
       DB_FILENAME: /directus/database/data.db
       EXTENSIONS_PATH: /directus/extensions

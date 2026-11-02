@@ -109,7 +109,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
   filter("items.update", rehydrate);
   init("routes.before", ({ app }) => {
     const guard = (deny, handle) => async (req, res, next) => {
-      if (req.query.ecluse_bypass || req.headers["x-ecluse-bypass"]) return next();
+      if (req.query.pii_bypass || req.headers["x-pii-bypass"]) return next();
       let on = false;
       try {
         on = anonymizesFiles(await roleConfig(database, req.accountability?.role));
@@ -118,7 +118,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
       if (!on) return next();
       try {
         const sep = req.originalUrl.includes("?") ? "&" : "?";
-        const orig = await fetch(SELF + req.originalUrl + sep + "ecluse_bypass=1", {
+        const orig = await fetch(SELF + req.originalUrl + sep + "pii_bypass=1", {
           headers: { authorization: req.headers.authorization || "", cookie: req.headers.cookie || "" }
         });
         if (!orig.ok) return deny(res, orig.status > 200 ? orig.status : 502);

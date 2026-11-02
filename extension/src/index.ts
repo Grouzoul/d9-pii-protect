@@ -132,13 +132,13 @@ export default ({ filter, init, action }: any, { logger, database, services, get
     // original with ITS creds then `handle`; any error (access denied, engine down) → `deny` (never clear).
     const guard = (deny: (res: any, code: number) => any, handle: (orig: Response, req: any, res: any) => Promise<any>) =>
       async (req: any, res: any, next: any) => {
-        if (req.query.ecluse_bypass || req.headers['x-ecluse-bypass']) return next(); // internal re-fetch → raw
+        if (req.query.pii_bypass || req.headers['x-pii-bypass']) return next(); // internal re-fetch → raw
         let on = false;
         try { on = anonymizesFiles(await roleConfig(database, req.accountability?.role)); } catch { /* off */ }
         if (!on) return next(); // role doesn't anonymize files → raw (d9 RBAC decides access)
         try {
           const sep = req.originalUrl.includes('?') ? '&' : '?';
-          const orig = await fetch(SELF + req.originalUrl + sep + 'ecluse_bypass=1', {
+          const orig = await fetch(SELF + req.originalUrl + sep + 'pii_bypass=1', {
             headers: { authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' },
           });
           if (!orig.ok) return deny(res, orig.status > 200 ? orig.status : 502); // upstream perm/error

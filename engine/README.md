@@ -32,8 +32,8 @@ GET  /health
 ## Run (Docker)
 
 ```bash
-docker build -t ecluse-engine:latest .
-docker run --rm -p 8077:8077 -e PII_PROTECT_KEY=$(openssl rand -base64 32) ecluse-engine:latest
+docker build -t pii-protect-engine:latest .
+docker run --rm -p 8077:8077 -e PII_PROTECT_KEY=$(openssl rand -base64 32) pii-protect-engine:latest
 curl -s localhost:8077/health
 ```
 
