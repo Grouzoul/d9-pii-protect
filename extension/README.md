@@ -13,11 +13,11 @@ this extension handles the PII content that field-level RBAC cannot see, delegat
 1. Drop this folder into the `extensions/` directory of the d9 instance (non-sandboxed hook — needs
    access to `accountability`).
 2. Start the **sidecar engine** and point the extension at it via `PII_PROTECT_ENGINE_URL`.
-3. Add two **config fields on `directus_roles`** (one-time; the control surface on each role page):
-   - `pii_encrypt_all` (boolean) — anonymize every collection for the role;
-   - `pii_encrypt_collections` (csv/tags) — specific collections to anonymize.
-   Editing them requires role-edit rights, so a regular user can't change what's encrypted. By default
-   (fields absent) the extension stays inert. See [`examples/seed.py`](../examples/seed.py).
+
+On first boot the extension **creates its own config fields** on `directus_roles` (idempotent) — so on each
+role page you get an **Encrypt all collections** toggle and, when off, **checkboxes of your collections**.
+Editing them requires role-edit rights, so a regular user can't change what's encrypted. Until a role opts
+in, the extension does nothing.
 
 ## Configuration (environment variables)
 

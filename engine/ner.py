@@ -44,7 +44,7 @@ def _build_pipeline():
         so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL   # pure win
         # Threads: 0 = let ONNX Runtime decide. On heterogeneous CPUs (e.g. Apple perf+efficiency cores)
         # capping to the PHYSICAL/performance-core count is faster than using every vCPU (avoids oversubscription).
-        threads = int(os.environ.get("PII_NER_ONNX_THREADS", "0"))
+        threads = int(os.environ.get("PII_NER_ONNX_THREADS") or 0)  # absent OR empty -> 0 (auto)
         if threads > 0:
             so.intra_op_num_threads = threads
         src = ONNX_DIR                                   # model + tokenizer baked here

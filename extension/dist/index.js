@@ -73,6 +73,43 @@ async function bufferStream(stream) {
   return Buffer.concat(chunks);
 }
 var index_default = ({ filter, init, action }, { logger, database, services, getSchema }) => {
+  init("app.after", async () => {
+    try {
+      const schema = await getSchema();
+      const fieldsSvc = new services.FieldsService({ schema, accountability: { admin: true, role: null } });
+      const have = new Set((await fieldsSvc.readAll("directus_roles")).map((f) => f.field));
+      const choices = Object.keys(schema.collections || {}).filter((c) => c === "directus_files" || !c.startsWith("directus_")).sort().map((c) => ({ text: c, value: c }));
+      if (!have.has("pii_encrypt_all")) {
+        await fieldsSvc.createField("directus_roles", {
+          field: "pii_encrypt_all",
+          type: "boolean",
+          meta: {
+            interface: "boolean",
+            special: ["cast-boolean"],
+            width: "full",
+            options: { label: "Encrypt all collections for this role" },
+            note: "Shortcut: anonymize PII everywhere. Turn OFF to pick collections below."
+          },
+          schema: { default_value: false }
+        });
+      }
+      const colMeta = {
+        interface: "select-multiple-checkbox",
+        special: ["cast-json"],
+        width: "full",
+        options: { choices },
+        note: "Collections to anonymize for this role.",
+        conditions: [{ name: "Hidden when encrypt-all is on", rule: { pii_encrypt_all: { _eq: true } }, hidden: true }]
+      };
+      if (!have.has("pii_encrypt_collections"))
+        await fieldsSvc.createField("directus_roles", { field: "pii_encrypt_collections", type: "json", meta: colMeta });
+      else
+        await fieldsSvc.updateField("directus_roles", { field: "pii_encrypt_collections", meta: colMeta });
+      logger.info("[pii-protect] role config fields ready");
+    } catch (e) {
+      logger.warn("[pii-protect] role config setup skipped: " + e.message);
+    }
+  });
   filter("items.read", async (payload, meta, ctx) => {
     if (!Array.isArray(payload)) return payload;
     const cfg = await roleConfig(ctx?.database, ctx?.accountability?.role);

@@ -31,22 +31,10 @@ docker compose up -d --build    # builds the engine + starts d9
 ```
 
 - d9: http://localhost:8055 (admin defined in `.env`)
-- Choose what a role sees anonymized on its **role page** (Settings → Roles & Permissions → a role), via two
-  fields the extension reads: **`pii_encrypt_all`** (toggle: anonymize every collection) and
-  **`pii_encrypt_collections`** (pick collections). Changing them needs role-edit rights, so a regular user
+- The extension **adds its own config to each role automatically** (no setup script). On the **role page**
+  (Settings → Roles & Permissions → a role) you get **Encrypt all collections** (toggle) and, when it's off,
+  **checkboxes of your collections** to anonymize. Changing them needs role-edit rights, so a regular user
   can't alter what's encrypted — same access control as the other permissions.
-
-### See the demo (optional)
-
-The demo scaffolding lives in [`examples/`](examples/) (it creates a sample `tickets` collection — for
-trying it out, **not** something to run against a real d9):
-
-```bash
-python3 examples/seed.py   # sample tickets collection + agent role/user
-bash examples/demo.sh             # text / document / image / refused type / round-trip, agent vs human
-```
-
-Demo accounts: `admin@example.com` / `admin-pwd` and `agent@example.com` / `agent-pwd`.
 
 ## Configuration (environment variables)
 
@@ -60,6 +48,7 @@ Demo accounts: `admin@example.com` / `admin-pwd` and `agent@example.com` / `agen
 | `PII_NER_MODEL` | engine | Hugging Face NER model (see [`engine/MODELS.md`](engine/MODELS.md)). | Anonym-IA FR |
 | `PII_NER_BACKEND` | engine | `onnx` (ONNX Runtime, ~30% faster, same results) or `torch`. | `onnx` |
 | `PII_NER_THRESHOLD` | engine | NER confidence threshold. | `0.4` |
+| `PII_NER_ONNX_THREADS` | engine | ONNX Runtime intra-op threads. Empty = auto; cap to physical/perf cores on heterogeneous CPUs (e.g. 4 on Apple Silicon). | *(empty = auto)* |
 | `PII_OCR_LANG` | engine | Tesseract language for image redaction. | `fra` |
 
 **Per role × collection**: a role anonymizes a collection when `pii_encrypt_all` is on, or that collection
