@@ -1,6 +1,6 @@
 # d9 PII Protect
 
-Governed PII anonymization for AI agents in [d9](https://github.com/LaWebcapsule/d9) (Directus 9).
+Governed PII anonymization for AI agents in [d9](https://github.com/LaWebcapsule/d9).
 
 For the roles you choose, PII in **free-text fields, documents and images** is **reversibly encrypted**
 (or redacted for images) on read; authorized users still see the original. Detection is French-first

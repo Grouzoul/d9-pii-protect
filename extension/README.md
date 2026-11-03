@@ -1,6 +1,6 @@
 # directus-extension-pii-protect (d9 PII Protect)
 
-d9 / Directus hook for **governed PII anonymization for AI agents**.
+d9 hook for **governed PII anonymization for AI agents**.
 
 Anonymization is driven **per role × per collection**: for a role that anonymizes a collection,
 free-text fields are **detected (engine, FR by default) and reversibly encrypted** on read (and

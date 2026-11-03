@@ -12,7 +12,7 @@ prod): no central proxy, PII never leaves its environment (confinement principle
   │                            ▼                                                │
   │                    ┌───────────────┐   PII_PROTECT_ENGINE_URL   ┌────────┐ │
   │   Human ──────────▶│      d9       │ ─────────────────────────▶ │ ENGINE │ │
-  │   (sees clear)     │  (Directus 9) │ ◀───────────────────────── │(sidecar)│ │
+  │   (sees clear)     │               │ ◀───────────────────────── │(sidecar)│ │
   │                    │  + extension  │     text <-> markers         └────────┘ │
   │                    │  PII Protect  │                             Presidio FR │
   │                    └───────┬───────┘                             + FR NER    │
@@ -27,7 +27,7 @@ prod): no central proxy, PII never leaves its environment (confinement principle
 flowchart LR
     agent["AI agent / API<br/>(anonymized role)"]
     human["Human<br/>(authorized)"]
-    d9["d9 (Directus 9)<br/>+ PII Protect extension<br/>(per-role hook)"]
+    d9["d9<br/>+ PII Protect extension<br/>(per-role hook)"]
     db[("Database<br/>PII in clear")]
     engine["ENGINE sidecar<br/>Presidio FR + NER + regex<br/>+ AES-GCM encryption"]
 
@@ -43,7 +43,7 @@ flowchart LR
 | Brick | Role | Tech | Repo contents |
 |---|---|---|---|
 | **Engine** (`engine/`) | Detects PII in a text and encrypts/decrypts it. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + regex/checksum recognizers + AES-256-GCM | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `image_redact.py`, `MODELS.md` |
-| **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for the roles you configure (per collection), rehydrates on write. | TypeScript (Directus hook) | `src/index.ts`, `dist/index.js` |
+| **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for the roles you configure (per collection), rehydrates on write. | TypeScript (d9 hook) | `src/index.ts`, `dist/index.js` |
 | **Deploy** (`deploy/`) | Reference stack wiring the two together. | docker-compose | `docker-compose.yml`, `.env.example` |
 
 ## The flow, step by step

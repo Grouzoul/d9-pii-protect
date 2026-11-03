@@ -1,7 +1,7 @@
 # Reference deployment: d9 + the PII anonymization engine (sidecar).
 #
 #   - "engine" = the self-contained sidecar (Presidio FR + NER + AES-GCM encryption). ONE per environment.
-#   - "d9"     = Directus 9 (fork) with the PII Protect extension mounted (per-role hook).
+#   - "d9"     = d9 with the PII Protect extension mounted (per-role hook).
 #
 # (Human-in-the-loop email approval — HITL — is phase 2; no mail server here.)
 # Copy .env.example -> .env, set PII_PROTECT_KEY, then: docker compose up -d --build
