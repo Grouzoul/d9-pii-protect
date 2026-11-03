@@ -43,7 +43,7 @@ flowchart LR
 | Brick | Role | Tech | Repo contents |
 |---|---|---|---|
 | **Engine** (`engine/`) | Detects PII in a text and encrypts/decrypts it. | Python, [Presidio](https://microsoft.github.io/presidio/) (orchestration) + FR NER [Anonym-IA](https://huggingface.co/Anonym-IA/V2-camembert-ner-pii-french) + regex/checksum recognizers + AES-256-GCM | `Dockerfile`, `app.py`, `analyzer.py`, `recognizers.py`, `ner.py`, `crypto.py`, `image_redact.py`, `MODELS.md` |
-| **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for "agent" roles, rehydrates on write, and for authorized humans. | TypeScript (Directus hook) | `src/index.ts`, `dist/index.js` |
+| **Extension** (`extension/`) | Integrates the engine into d9 as one hook. Anonymizes on read for the roles you configure (per collection), rehydrates on write. | TypeScript (Directus hook) | `src/index.ts`, `dist/index.js` |
 | **Deploy** (`deploy/`) | Reference stack wiring the two together. | docker-compose | `docker-compose.yml`, `.env.example` |
 
 ## The flow, step by step
@@ -52,12 +52,12 @@ flowchart LR
    calls `POST /anonymize` on the engine for each relevant free-text field.
 2. The engine **detects** PII (FR NER + regex + Presidio context scoring) and replaces each value
    with an encrypted marker `[[PII:TYPE:base64(nonce+ciphertext)]]`.
-   → the agent **never** sees the clear value; a random nonce per value prevents any equality leak
+   → the user **never** sees the clear value; a random nonce per value prevents any equality leak
    or brute-force without the key.
-3. The agent **writes** (create/update) a text containing markers. The hook calls `POST /rehydrate`:
+3. That user **writes** (create/update) a text containing markers. The hook calls `POST /rehydrate`:
    the engine **decrypts** and restores the clear value before storage.
-4. An **authorized human** reads normally: no anonymization (d9 RBAC decides who is authorized).
-5. **Fail-closed**: if the engine is unreachable, the agent gets `[protected — unavailable]` rather
+4. A user whose **role is not configured** reads normally: no anonymization.
+5. **Fail-closed**: if the engine is unreachable, the user gets `[protected — unavailable]` rather
    than the clear value.
 
 ## Design decisions
