@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   d9:
-    image: d9-main:latest
+    image: lawebcapsule/d9:latest   # public d9 image (Docker Hub). Pin a version (e.g. :12) for reproducibility.
     depends_on: [engine]
     ports: ["8055:8055"]
     environment:
@@ -41,7 +41,8 @@ services:
       CACHE_ENABLED: "false"
       # ===== The extension reads ITS engine here. No hardcoded environment coupling. =====
       PII_PROTECT_ENGINE_URL: http://engine:8077
-      # Optional: restrict processed fields (JSON {collection:[fields]}). Empty = secure-by-default = all 'text' fields.
+      # Optional: narrow WHICH fields within a collection (JSON {collection:[fields]}). Empty = all 'text'
+      # fields. WHICH collections are anonymized is set per role on the role page (not here).
       PII_PROTECT_FIELDS: ${PII_PROTECT_FIELDS:-}
     volumes:
       - ../extension:/directus/extensions/directus-extension-pii-protect:ro

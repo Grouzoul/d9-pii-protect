@@ -22,7 +22,8 @@ Details and diagram: **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## Quick start
 
-Prerequisites: Docker, and the `d9-main:latest` image available locally.
+Prerequisites: Docker. The d9 image is pulled from Docker Hub (`lawebcapsule/d9`); the PII engine is built
+locally on first `up` (it downloads the NER model at build time, so the first build needs internet).
 
 ```bash
 cd deploy
