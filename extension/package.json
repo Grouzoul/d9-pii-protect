@@ -1,6 +1,6 @@
 {
   "name": "directus-extension-pii-protect",
-  "description": "Anonymisation gouvernée des PII pour agents IA : détection FR + chiffrement réversible, par rôle.",
+  "description": "Governed PII anonymization for AI agents in d9: French detection + reversible encryption, per role × collection.",
   "icon": "lock",
   "version": "0.1.0",
   "author": "La Webcapsule <support@webcapsule.io>",
