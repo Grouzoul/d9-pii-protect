@@ -24,9 +24,13 @@
  * No custom logs: d9's native audit already records accesses.
  */
 import { Readable } from 'node:stream';
+import { randomUUID } from 'node:crypto';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
 const SELF = 'http://127.0.0.1:' + (process.env.PORT || '8055'); // d9 self-calls on its internal port
+// Secret, per-process. The extension sends it on its internal re-fetch to avoid recursion. It must NOT be
+// guessable by clients — otherwise anyone could add it to bypass anonymization. Never a fixed/known value.
+const BYPASS = randomUUID();
 
 // File extension → engine endpoint. Absent = unsupported type → fail-closed refusal.
 const FILE_ROUTE: Record<string, string> = {
@@ -165,14 +169,13 @@ export default ({ filter, init, action }: any, { logger, database, services, get
     // original with ITS creds then `handle`; any error (access denied, engine down) → `deny` (never clear).
     const guard = (deny: (res: any, code: number) => any, handle: (orig: Response, req: any, res: any) => Promise<any>) =>
       async (req: any, res: any, next: any) => {
-        if (req.query.pii_bypass || req.headers['x-pii-bypass']) return next(); // internal re-fetch → raw
+        if (req.headers['x-pii-bypass'] === BYPASS) return next(); // OUR internal re-fetch (secret) → raw
         let on = false;
         try { on = anonymizesFiles(await roleConfig(database, req.accountability?.role)); } catch { /* off */ }
         if (!on) return next(); // role doesn't anonymize files → raw (d9 RBAC decides access)
         try {
-          const sep = req.originalUrl.includes('?') ? '&' : '?';
-          const orig = await fetch(SELF + req.originalUrl + sep + 'pii_bypass=1', {
-            headers: { authorization: req.headers.authorization || '', cookie: req.headers.cookie || '' },
+          const orig = await fetch(SELF + req.originalUrl, {
+            headers: { authorization: req.headers.authorization || '', cookie: req.headers.cookie || '', 'x-pii-bypass': BYPASS },
           });
           if (!orig.ok) return deny(res, orig.status > 200 ? orig.status : 502); // upstream perm/error
           await handle(orig, req, res);

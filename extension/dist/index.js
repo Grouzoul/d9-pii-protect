@@ -1,6 +1,8 @@
 import { Readable } from "node:stream";
+import { randomUUID } from "node:crypto";
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || "http://host.docker.internal:8077";
 const SELF = "http://127.0.0.1:" + (process.env.PORT || "8055");
+const BYPASS = randomUUID();
 const FILE_ROUTE = {
   txt: "/anonymize-doc",
   md: "/anonymize-doc",
@@ -146,7 +148,7 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
   filter("items.update", rehydrate);
   init("routes.before", ({ app }) => {
     const guard = (deny, handle) => async (req, res, next) => {
-      if (req.query.pii_bypass || req.headers["x-pii-bypass"]) return next();
+      if (req.headers["x-pii-bypass"] === BYPASS) return next();
       let on = false;
       try {
         on = anonymizesFiles(await roleConfig(database, req.accountability?.role));
@@ -154,9 +156,8 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
       }
       if (!on) return next();
       try {
-        const sep = req.originalUrl.includes("?") ? "&" : "?";
-        const orig = await fetch(SELF + req.originalUrl + sep + "pii_bypass=1", {
-          headers: { authorization: req.headers.authorization || "", cookie: req.headers.cookie || "" }
+        const orig = await fetch(SELF + req.originalUrl, {
+          headers: { authorization: req.headers.authorization || "", cookie: req.headers.cookie || "", "x-pii-bypass": BYPASS }
         });
         if (!orig.ok) return deny(res, orig.status > 200 ? orig.status : 502);
         await handle(orig, req, res);
