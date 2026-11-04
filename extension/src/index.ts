@@ -27,6 +27,7 @@ import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
 
 const ENGINE = process.env.PII_PROTECT_ENGINE_URL || 'http://host.docker.internal:8077';
+const ENGINE_TOKEN = process.env.PII_PROTECT_ENGINE_TOKEN; // if set, sent as X-Engine-Token on every engine call
 const SELF = 'http://127.0.0.1:' + (process.env.PORT || '8055'); // d9 self-calls on its internal port
 // Secret, per-process. The extension sends it on its internal re-fetch to avoid recursion. It must NOT be
 // guessable by clients — otherwise anyone could add it to bypass anonymization. Never a fixed/known value.
@@ -68,7 +69,7 @@ const roleCache = new Map<string, Cfg>();
 async function roleConfig(database: any, roleId?: string): Promise<Cfg> {
   if (!roleId) return { all: false, cols: new Set(), at: 0 };
   const hit = roleCache.get(roleId);
-  if (hit && Date.now() - hit.at < 10_000) return hit;
+  if (hit && Date.now() - hit.at < 3_000) return hit;   // short TTL: config changes propagate fast
   let all = false, cols = new Set<string>();
   try {
     const row = await database('directus_roles')
@@ -85,7 +86,9 @@ const anonymizesFiles = (cfg: Cfg) => cfg.all || cfg.cols.has('directus_files');
 
 // Engine calls: text (→ text) and file (→ file). Throw if the engine returns an error (→ fail-closed upstream).
 async function post(path: string, payload: object): Promise<any> {
-  const r = await fetch(ENGINE + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (ENGINE_TOKEN) headers['x-engine-token'] = ENGINE_TOKEN;
+  const r = await fetch(ENGINE + path, { method: 'POST', headers, body: JSON.stringify(payload) });
   if (!r.ok) throw new Error('engine HTTP ' + r.status);
   return r.json();
 }
@@ -133,18 +136,45 @@ export default ({ filter, init, action }: any, { logger, database, services, get
     } catch (e: any) { logger.warn('[pii-protect] role config setup skipped: ' + e.message); }
   });
 
-  // ---- READ: encrypt free-text fields of the collections this role anonymizes ----
-  filter('items.read', async (payload: any, meta: any, ctx: any) => {
-    if (!Array.isArray(payload)) return payload;
-    const cfg = await roleConfig(ctx?.database, ctx?.accountability?.role);
-    if (!anonymizes(cfg, meta.collection)) return payload;
-    const fields = textFields(ctx?.schema, meta.collection);
-    for (const item of payload) for (const f of fields) {
-      if (typeof item?.[f] === 'string' && item[f]) {
+  // ---- READ: encrypt the collections this role anonymizes, INCLUDING nested related items ----
+  // A relation (e.g. documents.file -> directus_files) would otherwise leak the related item's PII in clear
+  // even when the parent collection isn't protected. We walk the relation graph from the payload.
+  const encryptItemFields = async (schema: any, collection: string, item: any) => {
+    if (collection === 'directus_files') { // metadata (string) -> encrypt whole, like the /files route
+      for (const f of FILE_META) if (typeof item[f] === 'string' && item[f]) {
+        try { item[f] = await callText('/encrypt', item[f]); } catch { item[f] = '[protected]'; }
+      }
+    } else {
+      for (const f of textFields(schema, collection)) if (typeof item[f] === 'string' && item[f]) {
         try { item[f] = await callText('/anonymize', item[f]); }
         catch (e: any) { logger.warn('[pii-protect] anonymize: ' + e.message); item[f] = '[protected — unavailable]'; } // fail-closed
       }
     }
+  };
+  const anonItem = async (cfg: any, schema: any, collection: string, item: any, depth: number) => {
+    if (!item || typeof item !== 'object' || depth > 6) return; // depth cap guards against relation cycles
+    if (anonymizes(cfg, collection)) await encryptItemFields(schema, collection, item);
+    for (const rel of (schema?.relations || [])) {
+      // M2O/M2A declared on this collection: item[field] is the (possibly expanded) related object
+      if (rel.collection === collection && rel.related_collection && rel.field in item) {
+        const v = item[rel.field];
+        if (Array.isArray(v)) { for (const x of v) await anonItem(cfg, schema, rel.related_collection, x, depth + 1); }
+        else if (v && typeof v === 'object') await anonItem(cfg, schema, rel.related_collection, v, depth + 1);
+      }
+      // O2M on this collection: nested under meta.one_field, items of rel.collection (covers M2M transitively)
+      const of = rel.meta?.one_field;
+      if (rel.related_collection === collection && of && of in item) {
+        const v = item[of];
+        if (Array.isArray(v)) { for (const x of v) await anonItem(cfg, schema, rel.collection, x, depth + 1); }
+        else if (v && typeof v === 'object') await anonItem(cfg, schema, rel.collection, v, depth + 1);
+      }
+    }
+  };
+  filter('items.read', async (payload: any, meta: any, ctx: any) => {
+    if (!payload) return payload;
+    const cfg = await roleConfig(ctx?.database, ctx?.accountability?.role);
+    const items = Array.isArray(payload) ? payload : [payload];
+    for (const it of items) await anonItem(cfg, ctx?.schema, meta.collection, it, 0); // walk top + nested relations
     return payload;
   });
 
@@ -193,6 +223,7 @@ export default ({ filter, init, action }: any, { logger, database, services, get
       for (const row of rows) for (const f of (row ? FILE_META : [])) {
         if (typeof row[f] === 'string' && row[f]) row[f] = await callText('/encrypt', row[f]); // WHOLE name encrypted, reversible
       }
+      res.setHeader('cache-control', 'no-store'); // role-dependent output: never cache/share it
       res.json(json);
     }));
 
@@ -211,6 +242,7 @@ export default ({ filter, init, action }: any, { logger, database, services, get
         if (!endpoint) return res.status(415).send('[protected — unsupported file type]'); // nothing unknown leaks
         const out = await callFile(endpoint, name, await bufferStream(stream));
         res.setHeader('content-type', file?.type || 'application/octet-stream');
+        res.setHeader('cache-control', 'no-store'); // role-dependent output: never cache/share it
         // Encrypt the DOWNLOAD filename too (same marker as the metadata) — otherwise the clear name leaks on save.
         res.setHeader('content-disposition', "attachment; filename*=UTF-8''" + encodeURIComponent(await callText('/encrypt', name)));
         res.send(out);

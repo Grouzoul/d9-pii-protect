@@ -19,12 +19,16 @@ Endpoints (JSON):
 
 Config (env): PII_PROTECT_KEY, PII_NER_MODEL, PII_NER_THRESHOLD, PORT.
 """
-import base64, io, json, os
+import base64, io, json, os, sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import crypto, analyzer, ner, image_redact
 
 PORT = int(os.environ.get("PORT", "8077"))
+# Optional shared secret: if set, every POST must carry header X-Engine-Token = this value. Defense in depth
+# so that even within the network, only the extension (which sets the same env) can reach the engine.
+ENGINE_TOKEN = os.environ.get("PII_PROTECT_ENGINE_TOKEN")
+MAX_BODY = int(os.environ.get("PII_MAX_BODY", str(64 * 1024 * 1024)))  # reject oversized bodies (DoS)
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
 # ║  CHOOSE WHAT GETS ENCRYPTED (by PII TYPE)                                  ║
@@ -130,14 +134,20 @@ class H(BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "not found"})
     def do_POST(self):
+        if ENGINE_TOKEN and self.headers.get("X-Engine-Token") != ENGINE_TOKEN:
+            return self._send(401, {"error": "unauthorized"})
         handler = POST_ROUTES.get(self.path)
         if handler is None:
             return self._send(404, {"error": "not found"})
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        if n > MAX_BODY:
+            return self._send(413, {"error": "payload too large"})
         try:
-            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+            body = json.loads(self.rfile.read(n) or b"{}")
             self._send(200, handler(body))
         except Exception as ex:
-            self._send(500, {"error": str(ex)})
+            print(f"[engine] 500 on {self.path}: {ex}", file=sys.stderr, flush=True)  # log internally…
+            self._send(500, {"error": "internal error"})                               # …don't echo details
 
 if __name__ == "__main__":
     print("Loading Presidio + the NER model…", flush=True)

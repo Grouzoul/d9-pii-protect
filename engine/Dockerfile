@@ -39,6 +39,10 @@ M.from_pretrained(m, export=True).save_pretrained('/models/onnx'); T.from_pretra
 # Source code last: editing a .py only invalidates this layer (fast rebuild).
 COPY app.py analyzer.py crypto.py recognizers.py ner.py image_redact.py ./
 
+# Run as a non-root user (CIS Docker 4.1). The baked model dir must stay readable/writable (HF lock files).
+RUN useradd --system --no-create-home --uid 10001 appuser && chown -R appuser /models /engine
+USER appuser
+
 EXPOSE 8077
 # PII_PROTECT_KEY MUST be provided at run time (secret / KMS). No default key in production.
 CMD ["python", "app.py"]

@@ -5,9 +5,15 @@ Random nonce per value -> no equality leak; no decryption without the key.
 """
 import base64, os, re
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hashes
 
-# ===== KEY: in production, inject via a secret manager / KMS. No default value in production. =====
-_KEY = (os.environ.get("PII_PROTECT_KEY") or "demo-key-change-me-0123456789abc").encode()[:32].ljust(32, b"0")
+# ===== KEY: required, no default. Inject via a secret manager / KMS in production. =====
+_secret = os.environ.get("PII_PROTECT_KEY")
+if not _secret:
+    raise RuntimeError("PII_PROTECT_KEY is required — refusing to start without an encryption key (no default).")
+# Derive a 32-byte AES key from the secret (any length) via HKDF-SHA256 — no silent truncation/padding.
+_KEY = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b"d9-pii-protect").derive(_secret.encode())
 _aes = AESGCM(_KEY)
 
 MARKER_RE = re.compile(r"\[\[PII:([A-Z_]+):([A-Za-z0-9_\-]+={0,2})\]\]")

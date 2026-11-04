@@ -15,6 +15,9 @@ from PIL import Image
 
 import analyzer
 
+# Cap image size to defuse decompression bombs (PIL raises DecompressionBombError above this).
+Image.MAX_IMAGE_PIXELS = int(os.environ.get("PII_MAX_IMAGE_PIXELS", str(50_000_000)))
+
 OCR_LANG = os.environ.get("PII_OCR_LANG", "fra")
 FILL = (0, 0, 0)  # redaction color
 
