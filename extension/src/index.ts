@@ -184,7 +184,6 @@ export default ({ filter, init, action }: any, { logger, database, services, get
           deny(res, 503);
         }
       };
-    const denyText = (res: any, code: number) => res.status(code).send('[protected]');
     const denyJson = (res: any, code: number) => res.status(code).json({ errors: [{ message: 'protected' }] });
 
     // Metadata: d9 does not emit items.read for directus_files → encrypt name/title/description here.
@@ -197,20 +196,29 @@ export default ({ filter, init, action }: any, { logger, database, services, get
       res.json(json);
     }));
 
-    // Content: text doc anonymized / image|PDF redacted / unknown type refused.
-    app.get('/assets/:pk', guard(denyText, async (orig: Response, req: any, res: any) => {
-      const cdisp = orig.headers.get('content-disposition') || '';
-      const name = decodeURIComponent(/filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp)?.[1] || String(req.params.pk));
-      const endpoint = FILE_ROUTE[ext(name)];
-      if (!endpoint) return res.status(415).send('[protected — unsupported file type]'); // nothing unknown leaks
-      const out = await callFile(endpoint, name, Buffer.from(await orig.arrayBuffer()));
-      res.setHeader('content-type', orig.headers.get('content-type') || 'application/octet-stream');
-      // Also encrypt the DOWNLOAD filename (not just the content) — otherwise the clear name leaks on save.
-      const encName = await callText('/encrypt', name);
-      const dispType = (cdisp.split(';')[0].trim() || 'attachment');
-      res.setHeader('content-disposition', dispType + "; filename*=UTF-8''" + encodeURIComponent(encName));
-      res.send(out);
-    }));
+    // Content: read directly via d9's AssetsService with the REQUESTER's own permissions — no self-call,
+    // so no bypass marker here. getAsset throws if the role may not read the file (→ fail-closed, never clear).
+    // text doc anonymized / image|PDF redacted / unknown type refused.
+    app.get('/assets/:pk', async (req: any, res: any, next: any) => {
+      let on = false;
+      try { on = anonymizesFiles(await roleConfig(database, req.accountability?.role)); } catch { /* off */ }
+      if (!on) return next(); // role doesn't anonymize files → d9 serves normally (RBAC decides access)
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: req.accountability });
+        const { stream, file } = await assets.getAsset(req.params.pk, {}); // original bytes; perms enforced
+        const name = file?.filename_download || String(req.params.pk);
+        const endpoint = FILE_ROUTE[ext(name)];
+        if (!endpoint) return res.status(415).send('[protected — unsupported file type]'); // nothing unknown leaks
+        const out = await callFile(endpoint, name, await bufferStream(stream));
+        res.setHeader('content-type', file?.type || 'application/octet-stream');
+        // Encrypt the DOWNLOAD filename too (same marker as the metadata) — otherwise the clear name leaks on save.
+        res.setHeader('content-disposition', "attachment; filename*=UTF-8''" + encodeURIComponent(await callText('/encrypt', name)));
+        res.send(out);
+      } catch (e: any) {
+        logger.warn('[pii-protect] /assets (fail-closed): ' + e.message);
+        res.status(503).send('[protected — unavailable]'); // never serve clear on error
+      }
+    });
   });
 
   // ---- UPLOAD: rehydrate a document re-uploaded by a file-anonymizing role (reversible, text docs only) ----

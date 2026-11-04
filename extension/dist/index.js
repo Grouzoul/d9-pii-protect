@@ -166,7 +166,6 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
         deny(res, 503);
       }
     };
-    const denyText = (res, code) => res.status(code).send("[protected]");
     const denyJson = (res, code) => res.status(code).json({ errors: [{ message: "protected" }] });
     app.get(["/files", "/files/:pk"], guard(denyJson, async (orig, _req, res) => {
       const json = await orig.json();
@@ -176,18 +175,28 @@ var index_default = ({ filter, init, action }, { logger, database, services, get
       }
       res.json(json);
     }));
-    app.get("/assets/:pk", guard(denyText, async (orig, req, res) => {
-      const cdisp = orig.headers.get("content-disposition") || "";
-      const name = decodeURIComponent(/filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cdisp)?.[1] || String(req.params.pk));
-      const endpoint = FILE_ROUTE[ext(name)];
-      if (!endpoint) return res.status(415).send("[protected \u2014 unsupported file type]");
-      const out = await callFile(endpoint, name, Buffer.from(await orig.arrayBuffer()));
-      res.setHeader("content-type", orig.headers.get("content-type") || "application/octet-stream");
-      const encName = await callText("/encrypt", name);
-      const dispType = cdisp.split(";")[0].trim() || "attachment";
-      res.setHeader("content-disposition", dispType + "; filename*=UTF-8''" + encodeURIComponent(encName));
-      res.send(out);
-    }));
+    app.get("/assets/:pk", async (req, res, next) => {
+      let on = false;
+      try {
+        on = anonymizesFiles(await roleConfig(database, req.accountability?.role));
+      } catch {
+      }
+      if (!on) return next();
+      try {
+        const assets = new services.AssetsService({ schema: await getSchema(), accountability: req.accountability });
+        const { stream, file } = await assets.getAsset(req.params.pk, {});
+        const name = file?.filename_download || String(req.params.pk);
+        const endpoint = FILE_ROUTE[ext(name)];
+        if (!endpoint) return res.status(415).send("[protected \u2014 unsupported file type]");
+        const out = await callFile(endpoint, name, await bufferStream(stream));
+        res.setHeader("content-type", file?.type || "application/octet-stream");
+        res.setHeader("content-disposition", "attachment; filename*=UTF-8''" + encodeURIComponent(await callText("/encrypt", name)));
+        res.send(out);
+      } catch (e) {
+        logger.warn("[pii-protect] /assets (fail-closed): " + e.message);
+        res.status(503).send("[protected \u2014 unavailable]");
+      }
+    });
   });
   action("files.upload", async (meta, ctx) => {
     try {
